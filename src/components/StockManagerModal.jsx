@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Package, Plus, Minus, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
+import { X, Package, CheckCircle } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
 
@@ -79,6 +79,10 @@ export default function StockManagerModal({
                   <img
                     src={item.image}
                     alt={item.name}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=400&q=80';
+                    }}
                     className="w-12 h-12 rounded-lg object-cover border border-espresso shrink-0"
                   />
                   <div className="min-w-0">

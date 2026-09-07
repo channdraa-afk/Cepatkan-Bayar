@@ -195,3 +195,12 @@ class SoundEffects {
 }
 
 export const sound = new SoundEffects();
+
+// Auto-unlock AudioContext on first user gesture (iOS Safari & Chrome Mobile compliance)
+if (typeof window !== 'undefined') {
+  const unlockAudio = () => {
+    sound.init();
+  };
+  window.addEventListener('click', unlockAudio, { once: true });
+  window.addEventListener('touchstart', unlockAudio, { once: true });
+}

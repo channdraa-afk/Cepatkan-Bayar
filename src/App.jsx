@@ -21,9 +21,7 @@ import {
 import { formatRupiah } from './components/MenuCard';
 import { sound } from './lib/audio';
 import { 
-  Utensils, Coffee, Sparkles, AlertCircle, ShoppingBag, 
-  Search, ShieldCheck, Plus, PackageOpen, ChevronRight,
-  Trash2, ClipboardList
+  Coffee, Sparkles, Search, ShieldCheck, Plus, ChevronRight, ClipboardList
 } from 'lucide-react';
 
 export default function App() {
@@ -62,16 +60,16 @@ export default function App() {
 
     // Subscribe to realtime updates
     const unsubscribe = subscribeToData(
-      (payload) => {
+      () => {
         loadData();
         if (isCashier) {
           sound.playCashRegister();
         }
       },
-      (payload) => {
+      () => {
         loadData();
       },
-      (payload) => {
+      () => {
         loadData();
       }
     );
@@ -146,7 +144,9 @@ export default function App() {
           origin: { y: 0.65 },
           colors: ['#9D6638', '#B0BA99', '#4E220F', '#F7F1DE']
         });
-      } catch (e) {}
+      } catch {
+        // Confetti optional
+      }
     } finally {
       isOrderCreatingRef.current = false;
     }

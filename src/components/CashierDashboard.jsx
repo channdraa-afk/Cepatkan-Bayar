@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { 
-  CheckCircle2, Clock, Utensils, DollarSign, Package, QrCode, 
-  Volume2, ArrowLeft, RefreshCw, AlertCircle, Banknote, Sparkles, Filter,
-  X, MessageCircle, Ban, Calculator, Trash2, Wallet
+  CheckCircle2, Utensils, Package, QrCode, 
+  ArrowLeft, AlertCircle, Sparkles,
+  MessageCircle, Ban, Calculator, Trash2
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { 
-  X, Plus, Edit2, Trash2, Package, Sparkles, Check, AlertTriangle, 
-  UploadCloud, Image, Tag, DollarSign, Layers, ArrowLeft, Camera, RefreshCw
+  X, Plus, Edit2, Trash2, Package, Sparkles, 
+  UploadCloud, ArrowLeft
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';

@@ -1,4 +1,4 @@
-import { getSupabase, isSupabaseConfigured } from './supabase';
+import { getSupabase } from './supabase';
 import { INITIAL_MENUS } from '../data/initialMenu';
 
 const LOCAL_STORAGE_MENUS_KEY = 'cepatkanbayar_menus_local';
@@ -19,7 +19,7 @@ export const getLocalMenus = () => {
       return INITIAL_MENUS;
     }
     return JSON.parse(data);
-  } catch (e) {
+  } catch {
     return INITIAL_MENUS;
   }
 };
@@ -165,7 +165,7 @@ export const getLocalOrders = () => {
     const data = localStorage.getItem(LOCAL_STORAGE_ORDERS_KEY);
     const parsed = data ? JSON.parse(data) : [];
     return parsed.map(parseOrder);
-  } catch (e) {
+  } catch {
     return [];
   }
 };
@@ -360,7 +360,7 @@ export const getLocalExpenses = () => {
   try {
     const data = localStorage.getItem(LOCAL_STORAGE_EXPENSES_KEY);
     return data ? JSON.parse(data) : [];
-  } catch (e) {
+  } catch {
     return [];
   }
 };
@@ -376,7 +376,7 @@ export const fetchExpenses = async () => {
       if (!error && data) {
         return data;
       }
-    } catch (err) {
+    } catch {
       // Fallback ke localStorage jika tabel expenses belum dibuat di Supabase
     }
   }
@@ -397,7 +397,7 @@ export const createExpense = async ({ title, category, amount, notes }) => {
   if (supabase) {
     try {
       await supabase.from('expenses').insert([newExpense]);
-    } catch (err) {
+    } catch {
       // Graceful fallback jika tabel belum ada
     }
   }
@@ -418,7 +418,7 @@ export const deleteExpense = async (id) => {
   if (supabase) {
     try {
       await supabase.from('expenses').delete().eq('id', id);
-    } catch (err) {
+    } catch {
       // Graceful fallback
     }
   }
@@ -439,7 +439,7 @@ export const clearAllExpenses = async () => {
   if (supabase) {
     try {
       await supabase.from('expenses').delete().neq('id', 'placeholder_keep_all');
-    } catch (err) {
+    } catch {
       // Graceful fallback
     }
   }

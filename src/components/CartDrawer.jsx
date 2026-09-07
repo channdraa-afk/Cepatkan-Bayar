@@ -56,7 +56,7 @@ export default function CartDrawer({
         setErrorMsg(`Mohon tunggu ${remaining} detik lagi sebelum mengirim pesanan berikutnya (anti-spam stand).`);
         return;
       }
-    } catch (err) {}
+    } catch {}
 
     // Periksa apakah ada item yang melebihi stok terbaru
     for (const item of cartItems) {
@@ -75,7 +75,7 @@ export default function CartDrawer({
     // Catat timestamp anti-spam SEBELUM request async Supabase berjalan
     try {
       localStorage.setItem('cepatkanbayar_last_order_ts', Date.now().toString());
-    } catch (err) {}
+    } catch {}
 
     try {
       await onSubmitOrder({
@@ -101,11 +101,11 @@ export default function CartDrawer({
       setDeliveryType('pickup');
       setNotes('');
       onClose();
-    } catch (err) {
+    } catch {
       setErrorMsg('Gagal mengirim pesanan. Silakan coba lagi.');
       try {
         localStorage.removeItem('cepatkanbayar_last_order_ts');
-      } catch (e) {}
+      } catch {}
     } finally {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
@@ -137,15 +137,29 @@ export default function CartDrawer({
               {cartItems.length} menu
             </span>
           </div>
-          <button
-            onClick={() => {
-              sound.playClick();
-              onClose();
-            }}
-            className="w-8 h-8 rounded-lg bg-cream border border-espresso flex items-center justify-center hover:bg-cream-200 active:translate-y-0.5 transition-all text-espresso"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            {cartItems.length > 0 && onClearCart && (
+              <button
+                onClick={() => {
+                  sound.playRemove();
+                  onClearCart();
+                }}
+                className="text-[11px] font-bold text-rose-700 hover:text-rose-900 flex items-center gap-1 mr-1 px-2 py-1 rounded-lg hover:bg-rose-100 transition-all"
+                title="Kosongkan seluruh keranjang"
+              >
+                <Trash2 className="w-3 h-3" /> Kosongkan
+              </button>
+            )}
+            <button
+              onClick={() => {
+                sound.playClick();
+                onClose();
+              }}
+              className="w-8 h-8 rounded-lg bg-cream border border-espresso flex items-center justify-center hover:bg-cream-200 active:translate-y-0.5 transition-all text-espresso"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Scrollable Items & Form */}

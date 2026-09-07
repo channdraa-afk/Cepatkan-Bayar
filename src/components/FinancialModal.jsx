@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { 
-  X, DollarSign, TrendingUp, TrendingDown, Plus, Trash2, 
-  Receipt, PieChart, Sparkles, CheckCircle2, AlertCircle, 
-  HelpCircle, ArrowRight, Wallet, Calculator, Copy, Check
+  X, TrendingUp, Plus, Trash2, Receipt, 
+  Sparkles, CheckCircle2, AlertCircle, 
+  Wallet, Calculator, Copy, Check
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
@@ -53,8 +53,10 @@ export default function FinancialModal({
 
   const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
   const netProfit = totalOmzet - totalExpenses;
-  const isBEP = totalOmzet >= totalExpenses;
-  const bepProgress = totalExpenses > 0 ? Math.min(100, Math.round((totalOmzet / totalExpenses) * 100)) : 100;
+  const isBEP = totalExpenses > 0 ? totalOmzet >= totalExpenses : totalOmzet > 0;
+  const bepProgress = totalExpenses > 0 
+    ? Math.min(100, Math.round((totalOmzet / totalExpenses) * 100)) 
+    : (totalOmzet > 0 ? 100 : 0);
 
   // Format input nominal dengan titik ribuan
   const handleAmountChange = (e) => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, Clock, Utensils, Sparkles, X, ChevronRight, Bell } from 'lucide-react';
+import { CheckCircle, Clock, Utensils, X, Bell } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
 
@@ -9,6 +9,13 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
   const isPending = order.status === 'pending';
   const isCooking = order.status === 'cooking';
   const isCompleted = order.status === 'completed';
+
+  const isDelivery = order.delivery_type === 'delivery' || (order.notes && order.notes.includes('🛵 Diantar'));
+  const cleanNotes = order.display_notes || (order.notes || '')
+    .replace(/\[🛵 Diantar ke Kelas\]/g, '')
+    .replace(/\[🚶 Ambil di Kasir\]/g, '')
+    .replace(/\[WA:\s*[^\]]+\]/g, '')
+    .trim();
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-espresso/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -43,9 +50,18 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
             <p className="text-sm font-bold text-espresso">
               Pemesan: <span className="font-extrabold">{order.customer_name}</span>
             </p>
-            {order.notes && (
-              <p className="text-xs text-espresso/70 italic mt-1 bg-cream-50 p-1.5 rounded-lg border border-espresso/20">
-                Catatan: {order.notes}
+
+            <div className="flex items-center justify-center gap-1.5 my-2">
+              <span className={`text-[11px] font-black px-3 py-1 rounded-full border border-espresso shadow-tactile-sm ${
+                isDelivery ? 'bg-caramel text-cream' : 'bg-sage text-espresso'
+              }`}>
+                {isDelivery ? '🛵 Diantar ke Kelas' : '🚶 Ambil di Meja Kasir'}
+              </span>
+            </div>
+
+            {cleanNotes && (
+              <p className="text-xs text-espresso/80 font-bold mt-1.5 bg-cream-50 p-2 rounded-xl border border-espresso/20">
+                📝 Catatan: "{cleanNotes}"
               </p>
             )}
           </div>

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { X, QrCode, Download, Printer, Copy, Check, Banknote, Globe } from 'lucide-react';
+import { X, Download, Printer, Copy, Check, Banknote, Globe } from 'lucide-react';
 import { sound } from '../lib/audio';
 
 export default function QrCodeModal({ isOpen, onClose }) {
@@ -35,7 +35,7 @@ export default function QrCodeModal({ isOpen, onClose }) {
       downloadLink.click();
       document.body.removeChild(downloadLink);
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
-    } catch (e) {
+    } catch {
       if (canvasRef.current) {
         const pngUrl = canvasRef.current.toDataURL('image/png');
         const downloadLink = document.createElement('a');
@@ -61,7 +61,7 @@ export default function QrCodeModal({ isOpen, onClose }) {
       downloadLink.click();
       document.body.removeChild(downloadLink);
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
-    } catch (e) {
+    } catch {
       window.open('/stand-bazar-poster.png', '_blank');
     }
   };
@@ -79,7 +79,7 @@ export default function QrCodeModal({ isOpen, onClose }) {
       downloadLink.click();
       document.body.removeChild(downloadLink);
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
-    } catch (e) {
+    } catch {
       window.open('/qris.png', '_blank');
     }
   };

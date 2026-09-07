@@ -1,38 +1,10 @@
-import React, { useState } from 'react';
-import { Lock, X, Delete, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Lock, X, Delete } from 'lucide-react';
 import { sound } from '../lib/audio';
 
 export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
-
-  if (!isOpen) return null;
-
-  const handleKeyPress = (num) => {
-    sound.playClick();
-    if (pin.length < 8) {
-      const nextPin = pin + num;
-      setPin(nextPin);
-      setError(false);
-
-      // Auto submit if 8 digits
-      if (nextPin.length === 8) {
-        verifyPin(nextPin);
-      }
-    }
-  };
-
-  const handleDelete = () => {
-    sound.playRemove();
-    setPin(prev => prev.slice(0, -1));
-    setError(false);
-  };
-
-  const handleClear = () => {
-    sound.playClick();
-    setPin('');
-    setError(false);
-  };
 
   // SHA-256 Hash of default PIN '28012010':
   // 5a85661182e1459ac1c4cf36692329f0ba2c3b5ddcb90b37d5cfe7fb07ca6a27
@@ -44,7 +16,7 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
       const hashBuffer = await window.crypto.subtle.digest('SHA-256', utf8);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    } catch (e) {
+    } catch {
       return '';
     }
   };
@@ -69,6 +41,55 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
       }, 700);
     }
   };
+
+  const handleKeyPress = (num) => {
+    sound.playClick();
+    setPin((prev) => {
+      if (prev.length < 8) {
+        const nextPin = prev + num;
+        setError(false);
+
+        // Auto submit if 8 digits
+        if (nextPin.length === 8) {
+          verifyPin(nextPin);
+        }
+        return nextPin;
+      }
+      return prev;
+    });
+  };
+
+  const handleDelete = () => {
+    sound.playRemove();
+    setPin((prev) => prev.slice(0, -1));
+    setError(false);
+  };
+
+  const handleClear = () => {
+    sound.playClick();
+    setPin('');
+    setError(false);
+  };
+
+  // Keyboard navigation support for laptop / PC
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key >= '0' && e.key <= '9') {
+        handleKeyPress(e.key);
+      } else if (e.key === 'Backspace') {
+        handleDelete();
+      } else if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-espresso/60 backdrop-blur-sm flex items-center justify-center p-4">
