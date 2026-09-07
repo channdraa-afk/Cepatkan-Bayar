@@ -670,9 +670,9 @@ export default function App() {
 
       {/* Footer Vintage */}
       <footer className="border-t-2 border-espresso bg-cream-100 py-6 px-4 text-center text-xs font-bold text-espresso/60 space-y-2">
-        <p>© 2026 CepatkanBayar • Stand Bazar Modern by Chandra (RPL) & Violet</p>
+        <p>© 2026 CepatkanBayar • Stand Bazar Modern by Chandra (RPL)</p>
         <p className="text-[11px] text-espresso/40">
-          Ditenagai oleh Supabase Realtime & Web Audio API
+          Made with ❤️ for Stand Bazar
         </p>
       </footer>
 

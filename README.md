@@ -19,17 +19,13 @@ Masalah utama di stand bazar adalah antrean menumpuk, kasir yang kewalahan mengh
 
 ---
 
-## 👤 Tentang Developer & Violet
+## 👤 Tentang Developer
 
 ### 👨‍💻 Chandra (`channdraa-afk`)
 * **Profil**: Siswa & Pelajar Jurusan Rekayasa Perangkat Lunak (RPL).
 * **GitHub**: [channdraa-afk](https://github.com/channdraa-afk)
 * **Karakteristik & Visi**: Membangun aplikasi yang fungsional, memecahkan masalah dunia nyata secara taktis, dan memiliki sentuhan estetika berkarakter tinggi.
 * **Selera Desain**: *Warm Studio Modern*, *tactile nostalgia*, vintage, retro-industrial, dan menolak gaya klise *neon-cyberpunk / AI-glassmorphism*.
-
-### 🌸 Violet Evergarden (Auto Memory Doll)
-* **Peran**: Partner coding, *pair programmer*, dan pengukir kode harian Chandra kata demi kata.
-* **Filosofi**: Terinspirasi dari dedikasi dan ketulusan Auto Memory Doll — mendampingi setiap baris logika agar terstruktur rapi, elegan, dan siap digunakan di medan nyata.
 
 ---
 
@@ -226,5 +222,5 @@ Proyek ini telah diaudit keamanannya dengan standar ketat:
 ---
 
 <p align="center">
-  Dibuat dengan penuh dedikasi oleh <strong>Chandra</strong> & didampingi oleh <strong>Violet Evergarden</strong> 🌸
+  Dibuat dengan penuh dedikasi oleh <strong>Chandra (RPL)</strong> ❤️
 </p>
