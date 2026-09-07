@@ -9,12 +9,14 @@ import CashierDashboard from './components/CashierDashboard';
 import StockManagerModal from './components/StockManagerModal';
 import MenuManagerModal from './components/MenuManagerModal';
 import QrCodeModal from './components/QrCodeModal';
-import SupabaseConfigModal from './components/SupabaseConfigModal';
+import FinancialModal from './components/FinancialModal';
 
 import { 
   fetchMenus, fetchOrders, createOrder, updateMenuStock, 
   quickAddStock, updateOrderStatus, subscribeToData,
-  createMenu, updateMenu, deleteMenu, clearAllMenus
+  createMenu, updateMenu, deleteMenu, clearAllMenus,
+  deleteOrder, clearAllOrders,
+  fetchExpenses, createExpense, deleteExpense, clearAllExpenses
 } from './lib/storage';
 import { formatRupiah } from './components/MenuCard';
 import { sound } from './lib/audio';
@@ -27,6 +29,7 @@ import {
 export default function App() {
   const [menus, setMenus] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [expenses, setExpenses] = useState([]);
   const [cart, setCart] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('Semua');
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,15 +42,19 @@ export default function App() {
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [isMenuManagerOpen, setIsMenuManagerOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isFinancialModalOpen, setIsFinancialModalOpen] = useState(false);
   const [activeCustomerOrder, setActiveCustomerOrder] = useState(null);
+
+  const isOrderCreatingRef = useRef(false);
 
   // Load Initial Data
   const loadData = async () => {
     const loadedMenus = await fetchMenus();
     const loadedOrders = await fetchOrders();
+    const loadedExpenses = await fetchExpenses();
     setMenus(loadedMenus);
     setOrders(loadedOrders);
+    setExpenses(loadedExpenses);
   };
 
   useEffect(() => {
@@ -60,6 +67,9 @@ export default function App() {
         if (isCashier) {
           sound.playCashRegister();
         }
+      },
+      (payload) => {
+        loadData();
       },
       (payload) => {
         loadData();
@@ -117,23 +127,29 @@ export default function App() {
     }
   };
 
-  // Submit Order (Customer)
+  // Submit Order (Customer) - Dilindungi Mutex Hardware Anti-Spam
   const handleSubmitOrder = async (orderPayload) => {
-    const created = await createOrder(orderPayload);
-    setCart([]);
-    setActiveCustomerOrder(created);
-    await loadData();
-
-    // Sound and celebratory confetti
-    sound.playOrderSuccess();
+    if (isOrderCreatingRef.current) return;
+    isOrderCreatingRef.current = true;
     try {
-      confetti({
-        particleCount: 60,
-        spread: 70,
-        origin: { y: 0.65 },
-        colors: ['#9D6638', '#B0BA99', '#4E220F', '#F7F1DE']
-      });
-    } catch (e) {}
+      const created = await createOrder(orderPayload);
+      setCart([]);
+      setActiveCustomerOrder(created);
+      await loadData();
+
+      // Sound and celebratory confetti
+      sound.playOrderSuccess();
+      try {
+        confetti({
+          particleCount: 60,
+          spread: 70,
+          origin: { y: 0.65 },
+          colors: ['#9D6638', '#B0BA99', '#4E220F', '#F7F1DE']
+        });
+      } catch (e) {}
+    } finally {
+      isOrderCreatingRef.current = false;
+    }
   };
 
   // Cashier Menu CRUD
@@ -171,6 +187,33 @@ export default function App() {
   // Cashier Order Status operations
   const handleUpdateOrderStatus = async (orderId, newStatus, extraData) => {
     await updateOrderStatus(orderId, newStatus, extraData);
+    await loadData();
+  };
+
+  // Cashier Order Deletion (Testing Data)
+  const handleDeleteOrder = async (orderId) => {
+    await deleteOrder(orderId);
+    await loadData();
+  };
+
+  const handleClearAllOrders = async () => {
+    await clearAllOrders();
+    await loadData();
+  };
+
+  // Cashier Expenses operations (Buku Kas Stand)
+  const handleCreateExpense = async (expenseData) => {
+    await createExpense(expenseData);
+    await loadData();
+  };
+
+  const handleDeleteExpense = async (id) => {
+    await deleteExpense(id);
+    await loadData();
+  };
+
+  const handleClearAllExpenses = async () => {
+    await clearAllExpenses();
     await loadData();
   };
 
@@ -220,7 +263,9 @@ export default function App() {
             onOpenStockManager={() => setIsStockModalOpen(true)}
             onOpenMenuManager={() => setIsMenuManagerOpen(true)}
             onOpenQrModal={() => setIsQrModalOpen(true)}
-            onOpenSettings={() => setIsSettingsModalOpen(true)}
+            onOpenFinancial={() => setIsFinancialModalOpen(true)}
+            onDeleteOrder={handleDeleteOrder}
+            onClearAllOrders={handleClearAllOrders}
             onExitCashier={() => setCashierView('catalog')}
           />
         ) : (
@@ -467,10 +512,14 @@ export default function App() {
         onClose={() => setIsQrModalOpen(false)}
       />
 
-      <SupabaseConfigModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        onConfigSaved={() => loadData()}
+      <FinancialModal
+        isOpen={isFinancialModalOpen}
+        onClose={() => setIsFinancialModalOpen(false)}
+        expenses={expenses}
+        orders={orders}
+        onCreateExpense={handleCreateExpense}
+        onDeleteExpense={handleDeleteExpense}
+        onClearAllExpenses={handleClearAllExpenses}
       />
 
     </div>

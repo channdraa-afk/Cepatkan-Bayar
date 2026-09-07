@@ -3,6 +3,7 @@ import { INITIAL_MENUS } from '../data/initialMenu';
 
 const LOCAL_STORAGE_MENUS_KEY = 'cepatkanbayar_menus_local';
 const LOCAL_STORAGE_ORDERS_KEY = 'cepatkanbayar_orders_local';
+const LOCAL_STORAGE_EXPENSES_KEY = 'cepatkanbayar_expenses_local';
 
 // Cross-tab broadcast channel for local development and offline mode
 const channel = typeof window !== 'undefined' && window.BroadcastChannel 
@@ -188,9 +189,14 @@ export const fetchOrders = async () => {
 };
 
 export const createOrder = async ({ customerName, customerClass, customerPhone, deliveryType, notes, items, totalPrice, paymentMethod }) => {
-  // Hitung nomor antrean
+  // Hitung nomor antrean berbasis nilai maksimum yang pernah ada
   const currentOrders = await fetchOrders();
-  const nextNum = currentOrders.length + 1;
+  const maxExistingNum = currentOrders.reduce((max, o) => {
+    const raw = (o.order_number || '').replace(/[^0-9]/g, '');
+    const num = parseInt(raw, 10);
+    return !isNaN(num) && num > max ? num : max;
+  }, 0);
+  const nextNum = maxExistingNum + 1;
   const orderNumber = `#${String(nextNum).padStart(3, '0')}`;
 
   const cleanName = (customerName || '').trim();
@@ -309,8 +315,146 @@ export const updateOrderStatus = async (orderId, newStatus, extraData = {}) => {
   return updated;
 };
 
+export const deleteOrder = async (orderId) => {
+  const supabase = getSupabase();
+  if (supabase) {
+    try {
+      await supabase.from('orders').delete().eq('id', orderId);
+    } catch (err) {
+      console.warn('Gagal delete order Supabase:', err);
+    }
+  }
+
+  const local = getLocalOrders();
+  const updated = local.filter(o => o.id !== orderId);
+  localStorage.setItem(LOCAL_STORAGE_ORDERS_KEY, JSON.stringify(updated));
+
+  if (channel) {
+    channel.postMessage({ type: 'ORDER_DELETED', orderId });
+  }
+
+  return updated;
+};
+
+export const clearAllOrders = async () => {
+  const supabase = getSupabase();
+  if (supabase) {
+    try {
+      await supabase.from('orders').delete().neq('id', 'placeholder_keep_all');
+    } catch (err) {
+      console.warn('Gagal clear all orders Supabase:', err);
+    }
+  }
+
+  localStorage.setItem(LOCAL_STORAGE_ORDERS_KEY, JSON.stringify([]));
+
+  if (channel) {
+    channel.postMessage({ type: 'ALL_ORDERS_CLEARED' });
+  }
+
+  return [];
+};
+
+// ==================== EXPENSES / MODAL CRUD ====================
+export const getLocalExpenses = () => {
+  try {
+    const data = localStorage.getItem(LOCAL_STORAGE_EXPENSES_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const fetchExpenses = async () => {
+  const supabase = getSupabase();
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        return data;
+      }
+    } catch (err) {
+      // Fallback ke localStorage jika tabel expenses belum dibuat di Supabase
+    }
+  }
+  return getLocalExpenses();
+};
+
+export const createExpense = async ({ title, category, amount, notes }) => {
+  const newExpense = {
+    id: `exp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    title: (title || '').trim(),
+    category: category || 'Bahan Baku',
+    amount: Math.max(0, parseInt(amount) || 0),
+    notes: (notes || '').trim(),
+    created_at: new Date().toISOString()
+  };
+
+  const supabase = getSupabase();
+  if (supabase) {
+    try {
+      await supabase.from('expenses').insert([newExpense]);
+    } catch (err) {
+      // Graceful fallback jika tabel belum ada
+    }
+  }
+
+  const local = getLocalExpenses();
+  const updated = [newExpense, ...local];
+  localStorage.setItem(LOCAL_STORAGE_EXPENSES_KEY, JSON.stringify(updated));
+
+  if (channel) {
+    channel.postMessage({ type: 'EXPENSES_UPDATE' });
+  }
+
+  return newExpense;
+};
+
+export const deleteExpense = async (id) => {
+  const supabase = getSupabase();
+  if (supabase) {
+    try {
+      await supabase.from('expenses').delete().eq('id', id);
+    } catch (err) {
+      // Graceful fallback
+    }
+  }
+
+  const local = getLocalExpenses();
+  const updated = local.filter(e => e.id !== id);
+  localStorage.setItem(LOCAL_STORAGE_EXPENSES_KEY, JSON.stringify(updated));
+
+  if (channel) {
+    channel.postMessage({ type: 'EXPENSES_UPDATE' });
+  }
+
+  return updated;
+};
+
+export const clearAllExpenses = async () => {
+  const supabase = getSupabase();
+  if (supabase) {
+    try {
+      await supabase.from('expenses').delete().neq('id', 'placeholder_keep_all');
+    } catch (err) {
+      // Graceful fallback
+    }
+  }
+
+  localStorage.setItem(LOCAL_STORAGE_EXPENSES_KEY, JSON.stringify([]));
+
+  if (channel) {
+    channel.postMessage({ type: 'EXPENSES_UPDATE' });
+  }
+
+  return [];
+};
+
 // ==================== REALTIME SUBSCRIPTIONS ====================
-export const subscribeToData = (onOrderChange, onMenuChange) => {
+export const subscribeToData = (onOrderChange, onMenuChange, onExpenseChange) => {
   const supabase = getSupabase();
   let supabaseSub = null;
 
@@ -332,6 +476,13 @@ export const subscribeToData = (onOrderChange, onMenuChange) => {
             if (onMenuChange) onMenuChange(payload);
           }
         )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'expenses' },
+          (payload) => {
+            if (onExpenseChange) onExpenseChange(payload);
+          }
+        )
         .subscribe();
     } catch (e) {
       console.warn('Error connecting Supabase realtime:', e);
@@ -341,11 +492,19 @@ export const subscribeToData = (onOrderChange, onMenuChange) => {
   const handleBroadcast = (event) => {
     const { data } = event;
     if (!data) return;
-    if (data.type === 'NEW_ORDER' || data.type === 'ORDER_STATUS_CHANGED') {
+    if (
+      data.type === 'NEW_ORDER' || 
+      data.type === 'ORDER_STATUS_CHANGED' ||
+      data.type === 'ORDER_DELETED' ||
+      data.type === 'ALL_ORDERS_CLEARED'
+    ) {
       if (onOrderChange) onOrderChange(data);
     }
     if (data.type === 'MENU_UPDATE') {
       if (onMenuChange) onMenuChange(data);
+    }
+    if (data.type === 'EXPENSES_UPDATE') {
+      if (onExpenseChange) onExpenseChange(data);
     }
   };
 

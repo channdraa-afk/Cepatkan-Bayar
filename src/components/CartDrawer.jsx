@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, ShoppingBag, Trash2, ArrowRight, Banknote, QrCode, AlertCircle, Plus, Minus } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
@@ -20,6 +20,7 @@ export default function CartDrawer({
   const [paymentMethod, setPaymentMethod] = useState('Tunai');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const isSubmittingRef = useRef(false);
 
   if (!isOpen) return null;
 
@@ -27,6 +28,9 @@ export default function CartDrawer({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Gembok instan: cegah spam ketukan cepat / double-tap di layar sentuh HP
+    if (isSubmittingRef.current || isSubmitting) return;
+
     if (!customerName.trim()) {
       setErrorMsg('Silakan tulis nama pemesan ya!');
       return;
@@ -44,11 +48,11 @@ export default function CartDrawer({
       return;
     }
 
-    // Proteksi anti-iseng: Cek jeda pemesanan dari perangkat yang sama (cooldown 30 detik)
+    // Proteksi anti-iseng: Cek jeda pemesanan dari perangkat yang sama (cooldown 15 detik)
     try {
       const lastOrderTs = localStorage.getItem('cepatkanbayar_last_order_ts');
-      if (lastOrderTs && Date.now() - parseInt(lastOrderTs) < 30000) {
-        const remaining = Math.ceil((30000 - (Date.now() - parseInt(lastOrderTs))) / 1000);
+      if (lastOrderTs && Date.now() - parseInt(lastOrderTs) < 15000) {
+        const remaining = Math.ceil((15000 - (Date.now() - parseInt(lastOrderTs))) / 1000);
         setErrorMsg(`Mohon tunggu ${remaining} detik lagi sebelum mengirim pesanan berikutnya (anti-spam stand).`);
         return;
       }
@@ -63,8 +67,16 @@ export default function CartDrawer({
       }
     }
 
-    setErrorMsg('');
+    // KUNCI GEMBOK INSTAN DI MILIDETIK 0
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
+    setErrorMsg('');
+
+    // Catat timestamp anti-spam SEBELUM request async Supabase berjalan
+    try {
+      localStorage.setItem('cepatkanbayar_last_order_ts', Date.now().toString());
+    } catch (err) {}
+
     try {
       await onSubmitOrder({
         customerName: customerName.trim(),
@@ -81,10 +93,6 @@ export default function CartDrawer({
         })),
         totalPrice
       });
-      // Set timestamp anti-spam
-      try {
-        localStorage.setItem('cepatkanbayar_last_order_ts', Date.now().toString());
-      } catch (err) {}
 
       // Reset form
       setCustomerName('');
@@ -95,7 +103,11 @@ export default function CartDrawer({
       onClose();
     } catch (err) {
       setErrorMsg('Gagal mengirim pesanan. Silakan coba lagi.');
+      try {
+        localStorage.removeItem('cepatkanbayar_last_order_ts');
+      } catch (e) {}
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -372,10 +384,15 @@ export default function CartDrawer({
               type="submit"
               form="orderForm"
               disabled={isSubmitting}
-              className="btn-tactile-primary w-full py-3.5 text-sm flex items-center justify-center gap-2"
+              className={`btn-tactile-primary w-full py-3.5 text-sm flex items-center justify-center gap-2 select-none ${
+                isSubmitting ? 'opacity-60 cursor-not-allowed pointer-events-none brightness-90' : ''
+              }`}
             >
               {isSubmitting ? (
-                <span>Memproses Pesanan...</span>
+                <div className="flex items-center gap-2">
+                  <span className="inline-block animate-spin text-base">⏳</span>
+                  <span className="font-black">Sedang Mengirim Pesanan...</span>
+                </div>
               ) : (
                 <>
                   <span>Pesan Sekarang ({paymentMethod})</span>

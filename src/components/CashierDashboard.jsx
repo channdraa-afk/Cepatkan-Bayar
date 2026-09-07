@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { 
   CheckCircle2, Clock, Utensils, DollarSign, Package, QrCode, 
-  Settings, Volume2, ArrowLeft, RefreshCw, AlertCircle, Banknote, Sparkles, Filter,
-  X, MessageCircle, Ban
+  Volume2, ArrowLeft, RefreshCw, AlertCircle, Banknote, Sparkles, Filter,
+  X, MessageCircle, Ban, Calculator, Trash2, Wallet
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
@@ -14,12 +14,16 @@ export default function CashierDashboard({
   onOpenStockManager,
   onOpenMenuManager,
   onOpenQrModal,
-  onOpenSettings,
+  onOpenFinancial,
+  onDeleteOrder,
+  onClearAllOrders,
   onExitCashier
 }) {
   const [activeTab, setActiveTab] = useState('active'); // 'active' | 'completed' | 'cancelled' | 'all'
   const [cashInputs, setCashInputs] = useState({}); // { [orderId]: number }
   const [confirmCancelId, setConfirmCancelId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [toastMsg, setToastMsg] = useState(null);
 
   // Filter orders
@@ -76,6 +80,28 @@ export default function CashierDashboard({
     setTimeout(() => setToastMsg(null), 5000);
   };
 
+  // Hapus single pesanan testing
+  const handleDeleteSingle = async (orderId) => {
+    sound.playRemove();
+    if (onDeleteOrder) {
+      await onDeleteOrder(orderId);
+    }
+    setConfirmDeleteId(null);
+    setToastMsg(`Pesanan telah dihapus dari database.`);
+    setTimeout(() => setToastMsg(null), 4000);
+  };
+
+  // Reset / Bersihkan semua pesanan testing
+  const handleClearAll = async () => {
+    sound.playRemove();
+    if (onClearAllOrders) {
+      await onClearAllOrders();
+    }
+    setConfirmClearAll(false);
+    setToastMsg(`Semua riwayat pesanan testing berhasil dibersihkan! Antrean kembali ke #001.`);
+    setTimeout(() => setToastMsg(null), 5000);
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-5">
       
@@ -95,6 +121,19 @@ export default function CashierDashboard({
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Tombol Buku Kas & Modal */}
+          <button
+            onClick={() => {
+              sound.playClick();
+              if (onOpenFinancial) onOpenFinancial();
+            }}
+            className="px-3 py-2 text-xs flex items-center gap-1.5 font-black bg-amber-400 text-espresso border-2 border-espresso rounded-xl shadow-tactile-sm hover:brightness-105 active:translate-y-0.5 transition-all"
+            title="Buku Kas, Input Modal & Monitoring Keuangan Stand"
+          >
+            <Calculator className="w-4 h-4 text-espresso" />
+            <span>💰 Buku Kas & Modal</span>
+          </button>
+
           <button
             onClick={() => {
               sound.playClick();
@@ -129,17 +168,6 @@ export default function CashierDashboard({
           >
             <QrCode className="w-4 h-4 text-espresso" />
             <span>QR Stand</span>
-          </button>
-
-          <button
-            onClick={() => {
-              sound.playClick();
-              onOpenSettings();
-            }}
-            className="p-2 rounded-xl bg-cream-50 border-2 border-espresso text-espresso hover:bg-white shadow-tactile-sm"
-            title="Pengaturan Database Supabase"
-          >
-            <Settings className="w-4 h-4" />
           </button>
 
           <button
@@ -281,6 +309,50 @@ export default function CashierDashboard({
           {activeTab === 'active' ? '⚡ Pesanan aktif otomatis tersembunyi setelah dicentang selesai' : activeTab === 'cancelled' ? 'Daftar pesanan batal & stok telah dikembalikan' : 'Arsip seluruh pesanan selesai'}
         </div>
       </div>
+
+      {/* Banner Tombol Reset Semua Pesanan Testing (Selesai & Batal) */}
+      {(activeTab === 'completed' || activeTab === 'cancelled') && displayedOrders.length > 0 && (
+        <div className="p-3.5 bg-rose-50 border-2 border-rose-500 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-tactile-sm animate-in fade-in">
+          <div className="flex items-center gap-2.5 text-rose-900">
+            <div className="w-8 h-8 rounded-xl bg-rose-200 border border-rose-600 flex items-center justify-center shrink-0">
+              <Trash2 className="w-4 h-4 text-rose-800" />
+            </div>
+            <div>
+              <h4 className="font-black text-xs sm:text-sm">Siap Mulai Bazar Besok?</h4>
+              <p className="text-[11px] font-bold text-rose-800/80">
+                Bersihkan pesanan uji coba agar nomor antrean kembali ke <strong>#001</strong> dan omzet kembali ke <strong>Rp 0</strong>.
+              </p>
+            </div>
+          </div>
+
+          {confirmClearAll ? (
+            <div className="flex items-center gap-2 shrink-0 bg-white p-1.5 rounded-xl border border-rose-400">
+              <span className="text-[11px] font-black text-rose-700">Yakin reset semua?</span>
+              <button
+                onClick={handleClearAll}
+                className="px-3 py-1.5 rounded-lg bg-rose-700 text-cream text-xs font-black border border-espresso hover:bg-rose-800 shadow-tactile-sm"
+              >
+                Ya, Bersihkan Sekarang!
+              </button>
+              <button
+                onClick={() => setConfirmClearAll(false)}
+                className="px-2.5 py-1.5 rounded-lg bg-cream text-espresso text-xs font-bold border border-espresso hover:bg-cream-200"
+              >
+                Batal
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmClearAll(true)}
+              className="px-3.5 py-2 rounded-xl bg-rose-700 text-cream text-xs font-black border-2 border-espresso shadow-tactile-sm hover:bg-rose-800 active:translate-y-0.5 transition-all flex items-center justify-center gap-1.5 shrink-0"
+              title="Reset seluruh transaksi testing agar antrean kembali ke #001"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-cream" />
+              <span>🗑️ Reset Semua Pesanan Testing</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Daftar Pesanan */}
       {displayedOrders.length === 0 ? (
@@ -513,13 +585,76 @@ export default function CashierDashboard({
                       )}
                     </div>
                   ) : isCompleted ? (
-                    <div className="w-full text-center py-1 text-xs font-bold text-sage-800 bg-sage-100 rounded-lg border border-sage-600 flex items-center justify-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Pesanan Sudah Selesai
+                    <div className="space-y-2">
+                      <div className="w-full text-center py-1.5 text-xs font-black text-sage-800 bg-sage-100 rounded-xl border border-sage-600 flex items-center justify-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-sage-700" />
+                        <span>Pesanan Sudah Selesai Dilayani</span>
+                      </div>
+                      
+                      {/* Tombol Hapus Single Order (Testing) */}
+                      <div className="flex justify-end pt-1">
+                        {confirmDeleteId === order.id ? (
+                          <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-rose-300">
+                            <span className="text-[10px] font-black text-rose-700">Hapus pesanan ini?</span>
+                            <button
+                              onClick={() => handleDeleteSingle(order.id)}
+                              className="px-2 py-0.5 rounded bg-rose-700 text-cream text-[10px] font-black hover:bg-rose-800"
+                            >
+                              Ya
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="px-2 py-0.5 rounded bg-cream text-espresso text-[10px] font-bold border border-espresso"
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteId(order.id)}
+                            className="text-[11px] font-bold text-rose-700/70 hover:text-rose-900 flex items-center gap-1 hover:underline"
+                            title="Hapus riwayat pesanan testing ini"
+                          >
+                            <Trash2 className="w-3 h-3" /> Hapus Transaksi Ini
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ) : (
-                    <div className="w-full text-center py-1.5 text-xs font-black text-rose-800 bg-rose-100 rounded-lg border border-rose-400 flex items-center justify-center gap-1.5">
-                      <Ban className="w-3.5 h-3.5 text-rose-700" />
-                      <span>Pesanan Dibatalkan (Stok Dikembalikan)</span>
+                    <div className="space-y-2">
+                      <div className="w-full text-center py-1.5 text-xs font-black text-rose-800 bg-rose-100 rounded-xl border border-rose-400 flex items-center justify-center gap-1.5">
+                        <Ban className="w-4 h-4 text-rose-700" />
+                        <span>Pesanan Dibatalkan (Stok Dikembalikan)</span>
+                      </div>
+
+                      {/* Tombol Hapus Single Order (Testing) */}
+                      <div className="flex justify-end pt-1">
+                        {confirmDeleteId === order.id ? (
+                          <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-rose-300">
+                            <span className="text-[10px] font-black text-rose-700">Hapus pesanan ini?</span>
+                            <button
+                              onClick={() => handleDeleteSingle(order.id)}
+                              className="px-2 py-0.5 rounded bg-rose-700 text-cream text-[10px] font-black hover:bg-rose-800"
+                            >
+                              Ya
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="px-2 py-0.5 rounded bg-cream text-espresso text-[10px] font-bold border border-espresso"
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteId(order.id)}
+                            className="text-[11px] font-bold text-rose-700/70 hover:text-rose-900 flex items-center gap-1 hover:underline"
+                            title="Hapus riwayat pesanan testing ini"
+                          >
+                            <Trash2 className="w-3 h-3" /> Hapus Transaksi Ini
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
