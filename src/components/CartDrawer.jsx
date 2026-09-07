@@ -13,7 +13,9 @@ export default function CartDrawer({
   onSubmitOrder
 }) {
   const [customerName, setCustomerName] = useState('');
+  const [customerClass, setCustomerClass] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [deliveryType, setDeliveryType] = useState('pickup'); // 'pickup' | 'delivery'
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Tunai');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,6 +29,10 @@ export default function CartDrawer({
     e.preventDefault();
     if (!customerName.trim()) {
       setErrorMsg('Silakan tulis nama pemesan ya!');
+      return;
+    }
+    if (!customerClass.trim()) {
+      setErrorMsg('Silakan tulis kelas / ruangan (contoh: XI RPL 2)!');
       return;
     }
     if (!customerPhone.trim()) {
@@ -62,7 +68,9 @@ export default function CartDrawer({
     try {
       await onSubmitOrder({
         customerName: customerName.trim(),
+        customerClass: customerClass.trim(),
         customerPhone: customerPhone.trim(),
+        deliveryType,
         notes: notes.trim(),
         paymentMethod,
         items: cartItems.map(i => ({
@@ -80,7 +88,9 @@ export default function CartDrawer({
 
       // Reset form
       setCustomerName('');
+      setCustomerClass('');
       setCustomerPhone('');
+      setDeliveryType('pickup');
       setNotes('');
       onClose();
     } catch (err) {
@@ -184,6 +194,7 @@ export default function CartDrawer({
 
               {/* Form Data Pemesan */}
               <form id="orderForm" onSubmit={handleSubmit} className="space-y-3 pt-2">
+                {/* 1. Nama Pemesan */}
                 <div>
                   <label className="block text-xs font-black text-espresso uppercase tracking-wider mb-1">
                     Nama Pemesan <span className="text-rose-600">*</span>
@@ -191,13 +202,29 @@ export default function CartDrawer({
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Chandra / Meja 3"
+                    placeholder="Contoh: Chandra"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border-2 border-espresso bg-cream-50 text-espresso font-bold text-sm focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm placeholder:text-espresso/40"
                   />
                 </div>
 
+                {/* 2. Kelas / Ruangan */}
+                <div>
+                  <label className="block text-xs font-black text-espresso uppercase tracking-wider mb-1">
+                    Kelas / Ruangan <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: XI RPL 2"
+                    value={customerClass}
+                    onChange={(e) => setCustomerClass(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border-2 border-espresso bg-cream-50 text-espresso font-bold text-sm focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm placeholder:text-espresso/40"
+                  />
+                </div>
+
+                {/* 3. Nomor WhatsApp */}
                 <div>
                   <label className="block text-xs font-black text-espresso uppercase tracking-wider mb-1">
                     No. WhatsApp / HP Aktif <span className="text-rose-600">*</span>
@@ -205,7 +232,7 @@ export default function CartDrawer({
                   <input
                     type="tel"
                     required
-                    placeholder="Contoh: 08123456789"
+                    placeholder="Contoh: 081234567890"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border-2 border-espresso bg-cream-50 text-espresso font-bold text-sm focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm placeholder:text-espresso/40"
@@ -215,13 +242,52 @@ export default function CartDrawer({
                   </p>
                 </div>
 
+                {/* 4. Opsi Pengambilan / Layanan */}
+                <div>
+                  <label className="block text-xs font-black text-espresso uppercase tracking-wider mb-1.5">
+                    Opsi Layanan
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setDeliveryType('pickup');
+                      }}
+                      className={`p-2.5 rounded-xl border-2 border-espresso font-black text-xs flex items-center justify-center gap-1.5 transition-all ${
+                        deliveryType === 'pickup'
+                          ? 'bg-sage text-espresso shadow-tactile'
+                          : 'bg-cream-50 text-espresso shadow-tactile-sm hover:bg-cream-100'
+                      }`}
+                    >
+                      <span>🚶 Ambil di Kasir</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setDeliveryType('delivery');
+                      }}
+                      className={`p-2.5 rounded-xl border-2 border-espresso font-black text-xs flex items-center justify-center gap-1.5 transition-all ${
+                        deliveryType === 'delivery'
+                          ? 'bg-caramel text-cream shadow-tactile'
+                          : 'bg-cream-50 text-espresso shadow-tactile-sm hover:bg-cream-100'
+                      }`}
+                    >
+                      <span>🛵 Diantar ke Kelas</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 5. Catatan Pesanan */}
                 <div>
                   <label className="block text-xs font-black text-espresso uppercase tracking-wider mb-1">
-                    Nomor Meja / Catatan Khusus (Opsional)
+                    Catatan (Opsional)
                   </label>
                   <input
                     type="text"
-                    placeholder="Misal: Meja 4 / Tanpa es / Jangan terlalu pedas"
+                    placeholder="Contoh: Jangan kebanyakan es batu"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border-2 border-espresso bg-cream-50 text-espresso font-bold text-sm focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm placeholder:text-espresso/40"

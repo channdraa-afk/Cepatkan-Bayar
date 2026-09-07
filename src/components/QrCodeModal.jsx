@@ -33,6 +33,24 @@ export default function QrCodeModal({ isOpen, onClose }) {
     }
   };
 
+  const handleDownloadQris = async () => {
+    sound.playClick();
+    try {
+      const res = await fetch('/qris.png');
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = blobUrl;
+      downloadLink.download = 'qris-stand-bazar.png';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    } catch (e) {
+      window.open('/qris.png', '_blank');
+    }
+  };
+
   const handlePrint = () => {
     sound.playClick();
     window.print();
@@ -149,13 +167,13 @@ export default function QrCodeModal({ isOpen, onClose }) {
             </div>
 
             <div className="flex gap-2">
-              <a
-                href="/qris.png"
-                download="qris-stand-bazar.png"
+              <button
+                type="button"
+                onClick={handleDownloadQris}
                 className="btn-tactile-primary flex-1 py-2.5 text-xs flex items-center justify-center gap-1.5 font-black shadow-tactile"
               >
                 <Download className="w-4 h-4" /> Unduh QRIS
-              </a>
+              </button>
               <button
                 onClick={handlePrint}
                 className="btn-tactile-cream flex-1 py-2.5 text-xs flex items-center justify-center gap-1.5 font-bold"

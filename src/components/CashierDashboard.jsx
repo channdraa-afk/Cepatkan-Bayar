@@ -324,7 +324,7 @@ export default function CashierDashboard({
                   {/* Header Order */}
                   <div className="flex items-start justify-between gap-2 pb-3 border-b border-espresso/20">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <span className="text-2xl font-black text-caramel">
                           {order.order_number}
                         </span>
@@ -335,8 +335,17 @@ export default function CashierDashboard({
                         }`}>
                           {order.payment_method}
                         </span>
+                        {(order.delivery_type === 'delivery' || (order.notes && order.notes.includes('🛵 Diantar'))) ? (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-caramel text-cream border border-espresso shadow-tactile-sm">
+                            🛵 Diantar ke Kelas
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-sage text-espresso border border-espresso shadow-tactile-sm">
+                            🚶 Ambil di Kasir
+                          </span>
+                        )}
                       </div>
-                      <p className="text-sm font-black text-espresso mt-0.5">
+                      <p className="text-sm font-black text-espresso mt-1">
                         {order.customer_name}
                       </p>
                       {order.customer_phone && (
@@ -371,7 +380,7 @@ export default function CashierDashboard({
                   {/* Catatan Meja / Khusus */}
                   {order.notes && (
                     <div className="my-2 p-2 bg-cream-100 rounded-lg border border-espresso/20 text-xs font-bold text-espresso/90 flex items-center gap-1.5">
-                      <span className="text-caramel font-black">Catatan:</span> {order.notes}
+                      <span className="text-caramel font-black">Catatan:</span> {order.display_notes || order.notes}
                     </div>
                   )}
 

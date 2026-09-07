@@ -129,20 +129,32 @@ export const quickAddStock = async (id, amount) => {
   return await updateMenuStock(id, currentStock + amount);
 };
 
-// Helper untuk membaca dan mengekstrak nomor telepon jika tersimpan di catatan
+// Helper untuk membaca dan mengekstrak nomor telepon, kelas, dan tipe pengantaran
 const parseOrder = (order) => {
   if (!order) return order;
   let phone = order.customer_phone || '';
   let notes = order.notes || '';
+  let deliveryType = order.delivery_type || (notes.includes('🛵 Diantar') ? 'delivery' : 'pickup');
+
   if (!phone && notes.includes('[WA:')) {
     const match = notes.match(/\[WA:\s*([^\]]+)\]/);
     if (match) {
       phone = match[1].trim();
     }
   }
+
+  // Catatan bersih tanpa tag kurung siku
+  const displayNotes = notes
+    .replace(/\[🛵 Diantar ke Kelas\]/g, '')
+    .replace(/\[🚶 Ambil di Kasir\]/g, '')
+    .replace(/\[WA:\s*[^\]]+\]/g, '')
+    .trim();
+
   return {
     ...order,
-    customer_phone: phone
+    customer_phone: phone,
+    delivery_type: deliveryType,
+    display_notes: displayNotes
   };
 };
 
@@ -175,24 +187,35 @@ export const fetchOrders = async () => {
   return getLocalOrders();
 };
 
-export const createOrder = async ({ customerName, customerPhone, notes, items, totalPrice, paymentMethod }) => {
+export const createOrder = async ({ customerName, customerClass, customerPhone, deliveryType, notes, items, totalPrice, paymentMethod }) => {
   // Hitung nomor antrean
   const currentOrders = await fetchOrders();
   const nextNum = currentOrders.length + 1;
   const orderNumber = `#${String(nextNum).padStart(3, '0')}`;
 
+  const cleanName = (customerName || '').trim();
+  const cleanClass = (customerClass || '').trim();
   const cleanPhone = (customerPhone || '').trim();
-  let fullNotes = (notes || '').trim();
-  if (cleanPhone) {
-    fullNotes = `[WA: ${cleanPhone}] ${fullNotes}`.trim();
-  }
+  const isDelivery = deliveryType === 'delivery';
+
+  // Format Nama: misal "Chandra (XI RPL 2)"
+  const formattedCustomerName = cleanClass ? `${cleanName} (${cleanClass})` : cleanName;
+
+  // Format Catatan: "[🛵 Diantar ke Kelas] [WA: 081234567890] Catatan..."
+  const deliveryBadgeText = isDelivery ? '[🛵 Diantar ke Kelas]' : '[🚶 Ambil di Kasir]';
+  const waBadgeText = cleanPhone ? `[WA: ${cleanPhone}]` : '';
+  const rawNotes = (notes || '').trim();
+  const fullNotes = `${deliveryBadgeText} ${waBadgeText} ${rawNotes}`.trim();
 
   const newOrder = {
     id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     order_number: orderNumber,
-    customer_name: customerName.trim(),
+    customer_name: formattedCustomerName,
+    customer_class: cleanClass,
     customer_phone: cleanPhone,
+    delivery_type: isDelivery ? 'delivery' : 'pickup',
     notes: fullNotes,
+    display_notes: rawNotes,
     items: items,
     total_price: totalPrice,
     payment_method: paymentMethod || 'Tunai',
