@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   X, Plus, Edit2, Trash2, Package, Sparkles, Check, AlertTriangle, 
-  Image, Tag, DollarSign, Layers, ArrowLeft
+  UploadCloud, Image, Tag, DollarSign, Layers, ArrowLeft, Camera, RefreshCw
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
-import { PHOTO_PRESETS } from '../data/initialMenu';
 import { sound } from '../lib/audio';
 
 export default function MenuManagerModal({
@@ -25,10 +24,14 @@ export default function MenuManagerModal({
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('20');
   const [description, setDescription] = useState('');
-  const [image, setImage] = useState(PHOTO_PRESETS[4].url); // default gorengan
+  const [image, setImage] = useState('');
   const [badge, setBadge] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [useUrlMode, setUseUrlMode] = useState(false);
+
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
 
@@ -38,9 +41,10 @@ export default function MenuManagerModal({
     setPrice('');
     setStock('20');
     setDescription('');
-    setImage(PHOTO_PRESETS[0].url);
+    setImage('');
     setBadge('');
     setEditingId(null);
+    setUseUrlMode(false);
   };
 
   const handleOpenAdd = () => {
@@ -57,9 +61,54 @@ export default function MenuManagerModal({
     setPrice(item.price.toString());
     setStock(item.stock.toString());
     setDescription(item.description || '');
-    setImage(item.image || PHOTO_PRESETS[0].url);
+    setImage(item.image || '');
     setBadge(item.badge || '');
     setActiveTab('edit');
+  };
+
+  // Compress & convert file to compact Base64 DataURL
+  const handleProcessFile = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    sound.playClick();
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onload = () => {
+        // Resize canvas max 800px for optimal speed & quality
+        const maxDim = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height && width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.82);
+        setImage(compressedBase64);
+        sound.playAdd();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleProcessFile(e.dataTransfer.files[0]);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -74,7 +123,7 @@ export default function MenuManagerModal({
       price: parseInt(price) || 0,
       stock: parseInt(stock) || 0,
       description: description.trim(),
-      image: image.trim(),
+      image: image.trim() || 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=400&q=80',
       badge: badge.trim()
     };
 
@@ -102,7 +151,7 @@ export default function MenuManagerModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-espresso/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-cream border-2 border-espresso rounded-2xl shadow-tactile-lg flex flex-col max-h-[90vh] overflow-hidden">
+      <div className="relative w-full max-w-2xl bg-cream border-2 border-espresso rounded-2xl shadow-tactile-lg flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="p-4 border-b-2 border-espresso bg-cream-100 flex items-center justify-between">
@@ -111,8 +160,8 @@ export default function MenuManagerModal({
               <Package className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-espresso">Kelola Menu Stand Bazar</h2>
-              <p className="text-xs text-espresso/70 font-bold">Tambah, edit, atau hapus menu kapan saja</p>
+              <h2 className="text-base sm:text-lg font-black text-espresso">Kelola Menu Stand Bazar</h2>
+              <p className="text-xs text-espresso/70 font-bold">Tambah, upload foto, edit, atau hapus menu</p>
             </div>
           </div>
           <button
@@ -173,7 +222,7 @@ export default function MenuManagerModal({
                         <span className="text-[11px] font-black text-rose-700">Yakin kosongkan semua?</span>
                         <button
                           onClick={handleClearAll}
-                          className="px-2 py-1 rounded bg-rose-700 text-cream text-[10px] font-bold border border-espresso"
+                          className="px-2 py-1 rounded bg-rose-700 text-cream text-[10px] font-black border border-espresso"
                         >
                           Ya, Kosongkan
                         </button>
@@ -204,14 +253,14 @@ export default function MenuManagerModal({
                   </div>
                   <h3 className="text-base font-black text-espresso mb-1">Menu Masih Kosong</h3>
                   <p className="text-xs text-espresso/70 font-bold mb-4 max-w-sm mx-auto">
-                    Yuk mulai masukkan menu lezat stand bazarmu agar calon pembeli bisa langsung pesan dari HP!
+                    Yuk mulai masukkan menu lezat stand bazarmu! Kamu bisa upload foto sendiri langsung dari galeri atau kamera HP.
                   </p>
                   <button
                     onClick={handleOpenAdd}
                     className="btn-tactile-primary px-4 py-2.5 text-xs inline-flex items-center gap-1.5"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Buat Menu Pertama Sekarang</span>
+                    <span>+ Buat Menu Pertama Sekarang</span>
                   </button>
                 </div>
               ) : (
@@ -226,7 +275,7 @@ export default function MenuManagerModal({
                         <img
                           src={item.image}
                           alt={item.name}
-                          className="w-12 h-12 rounded-lg object-cover border border-espresso shrink-0"
+                          className="w-12 h-12 rounded-lg object-cover border border-espresso shrink-0 bg-cream-200"
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
@@ -250,7 +299,7 @@ export default function MenuManagerModal({
                       <div className="flex items-center gap-1.5 self-end sm:self-center">
                         <button
                           onClick={() => handleOpenEdit(item)}
-                          className="px-2.5 py-1.5 rounded-lg bg-cream border border-espresso font-bold text-xs text-espresso hover:bg-cream-200 flex items-center gap-1"
+                          className="px-2.5 py-1.5 rounded-lg bg-cream border border-espresso font-bold text-xs text-espresso hover:bg-cream-200 flex items-center gap-1 shadow-tactile-sm"
                           title="Edit Menu"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -261,7 +310,7 @@ export default function MenuManagerModal({
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => handleDelete(item.id)}
-                              className="px-2 py-1 rounded bg-rose-700 text-cream font-black text-xs border border-espresso"
+                              className="px-2 py-1 rounded bg-rose-700 text-cream font-black text-xs border border-espresso shadow-tactile-sm"
                             >
                               Hapus!
                             </button>
@@ -275,8 +324,8 @@ export default function MenuManagerModal({
                         ) : (
                           <button
                             onClick={() => setConfirmDeleteId(item.id)}
-                            className="p-1.5 rounded-lg bg-rose-100 text-rose-800 border border-rose-400 hover:bg-rose-200"
-                            title="Hapus Menu"
+                            className="p-1.5 rounded-lg bg-rose-100 text-rose-800 border border-rose-400 hover:bg-rose-200 shadow-tactile-sm"
+                            title="Hapus Menu Ini"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -316,10 +365,10 @@ export default function MenuManagerModal({
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Es Teh Solo Jumbo / Tahu Krispi Pedas"
+                  placeholder="Contoh: Es Teh Solo Jumbo / Tahu Bakso Crispy"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border-2 border-espresso bg-white font-bold text-xs text-espresso focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border-2 border-espresso bg-white font-bold text-xs sm:text-sm text-espresso focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm"
                 />
               </div>
 
@@ -374,47 +423,106 @@ export default function MenuManagerModal({
                 </div>
               </div>
 
-              {/* Pilihan Foto Cepat (Preset Galeri) */}
+              {/* DRAG AND DROP / PILIH FOTO SENDIRI */}
               <div>
-                <label className="block text-xs font-black text-espresso uppercase mb-1 flex items-center justify-between">
-                  <span>Pilih Foto Menu (Klik Preset Cepat):</span>
-                  <span className="text-[10px] text-espresso/60 font-bold lowercase">atau tempel url di bawah</span>
-                </label>
-                
-                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 mb-2">
-                  {PHOTO_PRESETS.map((preset, idx) => (
-                    <button
-                      type="button"
-                      key={idx}
-                      onClick={() => {
-                        sound.playClick();
-                        setImage(preset.url);
-                      }}
-                      className={`relative aspect-square rounded-lg border-2 overflow-hidden transition-all ${
-                        image === preset.url 
-                          ? 'border-caramel ring-2 ring-caramel scale-105 shadow-tactile-sm' 
-                          : 'border-espresso/40 hover:border-espresso'
-                      }`}
-                      title={preset.name}
-                    >
-                      <img src={preset.url} alt={preset.name} className="w-full h-full object-cover" />
-                      {image === preset.url && (
-                        <div className="absolute inset-0 bg-caramel/40 flex items-center justify-center text-white">
-                          <Check className="w-4 h-4 font-black" />
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-black text-espresso uppercase">
+                    Foto Menu (Upload atau Drag & Drop)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setUseUrlMode(prev => !prev)}
+                    className="text-[11px] font-bold text-caramel hover:underline"
+                  >
+                    {useUrlMode ? 'Beralih ke Upload File' : 'Gunakan Link URL Gambar'}
+                  </button>
                 </div>
 
-                {/* URL Gambar Custom */}
+                {/* Input File Hidden */}
                 <input
-                  type="url"
-                  placeholder="URL Foto (Opsional, sudah terisi dari preset di atas)"
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg border border-espresso/40 bg-white font-mono text-[11px] text-espresso"
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      handleProcessFile(e.target.files[0]);
+                    }
+                  }}
+                  className="hidden"
                 />
+
+                {!useUrlMode ? (
+                  <div>
+                    {image ? (
+                      /* Preview Foto yang Dipilih */
+                      <div className="p-3 bg-cream-50 border-2 border-espresso rounded-2xl flex items-center justify-between gap-3 shadow-tactile-sm">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <img
+                            src={image}
+                            alt="Preview Menu"
+                            className="w-16 h-16 rounded-xl object-cover border-2 border-espresso shadow-sm"
+                          />
+                          <div>
+                            <span className="text-xs font-black text-espresso block">Foto Berhasil Dipilih ✓</span>
+                            <span className="text-[10px] font-bold text-sage-700">Otomatis dioptimalkan untuk web</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                            className="px-2.5 py-1.5 rounded-lg bg-cream border border-espresso text-xs font-black text-espresso hover:bg-cream-100"
+                          >
+                            Ganti Foto
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setImage('')}
+                            className="p-1.5 rounded-lg bg-rose-100 text-rose-700 border border-rose-400 hover:bg-rose-200"
+                            title="Hapus Foto"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Area Dropzone Drag & Drop / Click to Upload */
+                      <div
+                        onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsDragging(true);
+                        }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={handleDrop}
+                        className={`p-6 border-2 border-dashed rounded-2xl text-center cursor-pointer transition-all ${
+                          isDragging
+                            ? 'border-caramel bg-caramel/10 scale-[1.01]'
+                            : 'border-espresso/40 bg-cream-50 hover:bg-cream-100 hover:border-espresso'
+                        }`}
+                      >
+                        <div className="w-12 h-12 rounded-2xl bg-cream-200 border-2 border-espresso flex items-center justify-center mx-auto mb-2 text-caramel shadow-tactile-sm">
+                          <UploadCloud className="w-6 h-6" />
+                        </div>
+                        <p className="text-xs font-black text-espresso mb-0.5">
+                          Klik untuk Pilih Foto dari Galeri / Kamera HP
+                        </p>
+                        <p className="text-[11px] font-bold text-espresso/60">
+                          atau seret (drag & drop) file foto masakanmu ke kotak ini
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Input URL Alternatif */
+                  <input
+                    type="url"
+                    placeholder="https://images.unsplash.com/... atau link foto online"
+                    value={image}
+                    onChange={(e) => setImage(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border-2 border-espresso bg-white font-mono text-xs text-espresso focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm"
+                  />
+                )}
               </div>
 
               {/* Deskripsi Menu */}
@@ -442,7 +550,7 @@ export default function MenuManagerModal({
                       type="button"
                       key={b}
                       onClick={() => setBadge(badge === b ? '' : b)}
-                      className={`px-2 py-1 rounded-md text-[11px] font-bold border transition-all ${
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold border transition-all ${
                         badge === b 
                           ? 'bg-caramel text-cream border-espresso font-black' 
                           : 'bg-cream-100 text-espresso border-espresso/30'

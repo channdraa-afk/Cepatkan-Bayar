@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ShoppingBag, Coffee, Lock, ShieldCheck, Sparkles, LogOut, Utensils, ClipboardList, Plus } from 'lucide-react';
+import { ShoppingBag, Coffee, ShieldCheck, Sparkles, LogOut, Utensils, ClipboardList, Plus } from 'lucide-react';
 import { sound } from '../lib/audio';
 
 export default function Header({
@@ -133,20 +133,6 @@ export default function Header({
                   {cartCount}
                 </span>
               )}
-            </button>
-          )}
-
-          {/* Hidden Lock Button for Quick Access */}
-          {!isCashier && (
-            <button
-              onClick={() => {
-                sound.playClick();
-                onOpenCashierPin();
-              }}
-              className="p-2 rounded-xl border border-espresso/20 hover:border-espresso hover:bg-cream-200/50 text-espresso/40 hover:text-espresso transition-all"
-              title="Akses Kasir Tersembunyi (PIN: 1234)"
-            >
-              <Lock className="w-4 h-4" />
             </button>
           )}
         </div>

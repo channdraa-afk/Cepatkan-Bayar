@@ -10,13 +10,13 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
 
   const handleKeyPress = (num) => {
     sound.playClick();
-    if (pin.length < 4) {
+    if (pin.length < 8) {
       const nextPin = pin + num;
       setPin(nextPin);
       setError(false);
 
-      // Auto submit if 4 digits
-      if (nextPin.length === 4) {
+      // Auto submit if 8 digits
+      if (nextPin.length === 8) {
         verifyPin(nextPin);
       }
     }
@@ -35,8 +35,8 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
   };
 
   const verifyPin = (candidate) => {
-    // PIN kasir: dapat dikustomisasi lewat VITE_CASHIER_PIN di Vercel, default: 1234
-    const validPin = import.meta.env.VITE_CASHIER_PIN || '1234';
+    // PIN kasir rahasia: 28012010
+    const validPin = import.meta.env.VITE_CASHIER_PIN || '28012010';
     if (candidate === validPin) {
       sound.playComplete();
       setPin('');
@@ -75,15 +75,15 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
 
         <h3 className="text-lg font-black text-espresso">Akses Kasir Bazar</h3>
         <p className="text-xs text-espresso/70 mb-4 font-bold">
-          Masukkan 4-digit PIN rahasia kasir
+          Masukkan PIN rahasia kasir
         </p>
 
-        {/* PIN Indicators */}
-        <div className="flex justify-center gap-3 mb-5">
-          {[0, 1, 2, 3].map((idx) => (
+        {/* 8 PIN Indicators */}
+        <div className="flex justify-center gap-2 mb-5">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((idx) => (
             <div
               key={idx}
-              className={`w-4 h-4 rounded-full border-2 border-espresso transition-all ${
+              className={`w-3.5 h-3.5 rounded-full border-2 border-espresso transition-all ${
                 pin.length > idx
                   ? 'bg-caramel scale-110'
                   : 'bg-cream-200'
@@ -128,10 +128,6 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
             <Delete className="w-4 h-4" />
           </button>
         </div>
-
-        <p className="text-[10px] text-espresso/40 mt-4 font-mono">
-          Hint: Default PIN adalah 1234
-        </p>
 
       </div>
     </div>
