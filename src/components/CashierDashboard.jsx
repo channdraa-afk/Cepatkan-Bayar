@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { 
   CheckCircle2, Utensils, Package, QrCode, 
-  ArrowLeft, AlertCircle, Sparkles,
-  MessageCircle, Ban, Calculator, Trash2
+  AlertCircle, Sparkles, Calculator,
+  MessageCircle, Ban, Trash2
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
@@ -17,8 +17,7 @@ export default function CashierDashboard({
   onOpenQrModal,
   onOpenFinancial,
   onDeleteOrder,
-  onClearAllOrders,
-  onExitCashier
+  onClearAllOrders
 }) {
   const [activeTab, setActiveTab] = useState('active'); // 'active' | 'completed' | 'cancelled' | 'all'
   const [confirmCancelId, setConfirmCancelId] = useState(null);
@@ -83,14 +82,14 @@ export default function CashierDashboard({
     setTimeout(() => setToastMsg(null), 4000);
   };
 
-  // Reset / Bersihkan semua pesanan testing
+  // Reset / Hapus semua riwayat pesanan
   const handleClearAll = async () => {
     sound.playRemove();
     if (onClearAllOrders) {
       await onClearAllOrders();
     }
     setConfirmClearAll(false);
-    setToastMsg(`Semua riwayat pesanan testing berhasil dibersihkan! Antrean kembali ke #001.`);
+    setToastMsg(`Semua riwayat pesanan berhasil dibersihkan! Antrean kembali ke #001.`);
     setTimeout(() => setToastMsg(null), 5000);
   };
 
@@ -160,17 +159,6 @@ export default function CashierDashboard({
           >
             <QrCode className="w-4 h-4 text-espresso" />
             <span>QR Stand</span>
-          </button>
-
-          <button
-            onClick={() => {
-              sound.playClick();
-              onExitCashier();
-            }}
-            className="btn-tactile-cream px-3 py-2 text-xs flex items-center gap-1.5"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Menu Pembeli</span>
           </button>
         </div>
       </div>
@@ -310,21 +298,21 @@ export default function CashierDashboard({
               <Trash2 className="w-4 h-4 text-rose-800" />
             </div>
             <div>
-              <h4 className="font-black text-xs sm:text-sm">Siap Mulai Bazar Besok?</h4>
+              <h4 className="font-black text-xs sm:text-sm">Siap Mulai Bazar?</h4>
               <p className="text-[11px] font-bold text-rose-800/80">
-                Bersihkan pesanan uji coba agar nomor antrean kembali ke <strong>#001</strong> dan omzet kembali ke <strong>Rp 0</strong>.
+                Hapus seluruh riwayat pesanan agar nomor antrean kembali ke <strong>#001</strong> dan omzet kembali ke <strong>Rp 0</strong>.
               </p>
             </div>
           </div>
 
           {confirmClearAll ? (
             <div className="flex items-center gap-2 shrink-0 bg-white p-1.5 rounded-xl border border-rose-400">
-              <span className="text-[11px] font-black text-rose-700">Yakin reset semua?</span>
+              <span className="text-[11px] font-black text-rose-700">Yakin hapus semua?</span>
               <button
                 onClick={handleClearAll}
                 className="px-3 py-1.5 rounded-lg bg-rose-700 text-cream text-xs font-black border border-espresso hover:bg-rose-800 shadow-tactile-sm"
               >
-                Ya, Bersihkan Sekarang!
+                Ya, Hapus Sekarang!
               </button>
               <button
                 onClick={() => setConfirmClearAll(false)}
@@ -337,10 +325,10 @@ export default function CashierDashboard({
             <button
               onClick={() => setConfirmClearAll(true)}
               className="px-3.5 py-2 rounded-xl bg-rose-700 text-cream text-xs font-black border-2 border-espresso shadow-tactile-sm hover:bg-rose-800 active:translate-y-0.5 transition-all flex items-center justify-center gap-1.5 shrink-0"
-              title="Reset seluruh transaksi testing agar antrean kembali ke #001"
+              title="Hapus seluruh riwayat pesanan agar antrean kembali ke #001"
             >
               <Trash2 className="w-3.5 h-3.5 text-cream" />
-              <span>🗑️ Reset Semua Pesanan Testing</span>
+              <span>🗑️ Hapus Semua Riwayat</span>
             </button>
           )}
         </div>
