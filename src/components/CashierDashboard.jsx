@@ -450,11 +450,17 @@ export default function CashierDashboard({
                   </div>
 
                   {/* Catatan Meja / Khusus */}
-                  {order.notes && (
-                    <div className="my-2 p-2 bg-cream-100 rounded-lg border border-espresso/20 text-xs font-bold text-espresso/90 flex items-center gap-1.5">
-                      <span className="text-caramel font-black">Catatan:</span> {order.display_notes || order.notes}
-                    </div>
-                  )}
+                  {(() => {
+                    const cleanNote = (order.display_notes || order.notes || '')
+                      .replace(/\[\s*(🛵|🚶)?[^\]]*\]/g, '')
+                      .trim();
+                    if (!cleanNote) return null;
+                    return (
+                      <div className="my-2 p-2 bg-cream-100 rounded-lg border border-espresso/20 text-xs font-bold text-espresso/90 flex items-center gap-1.5">
+                        <span className="text-caramel font-black">Catatan:</span> {cleanNote}
+                      </div>
+                    );
+                  })()}
 
                   {/* List Item */}
                   <div className="py-2.5 space-y-1.5">
