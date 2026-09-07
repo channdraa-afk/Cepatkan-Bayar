@@ -83,6 +83,46 @@ export function createPickupMessage(order) {
 }
 
 /**
+ * Menghasilkan pesan notifikasi WhatsApp "Pesanan Selesai / Selamat Menikmati":
+ * 1. Versi Diantar ke Kelas (Delivery)
+ * 2. Versi Ambil di Kasir (Pickup)
+ */
+export function createCompletedMessage(order) {
+  if (!order) return '';
+
+  const customerName = order.customer_name || 'Kakak';
+  const customerClass = order.customer_class ? ` (${order.customer_class})` : '';
+  const orderNumber = order.order_number || '-';
+
+  const isDelivery = order.delivery_type === 'delivery' || 
+    (order.notes && order.notes.includes('🛵 Diantar'));
+
+  // VERSI 1: PESANAN SELESAI DIANTAR KE KELAS (DELIVERY)
+  if (isDelivery) {
+    return [
+      `Halo kak *${customerName}*${customerClass}! 👋✨`,
+      `Pesananmu *#${orderNumber}* di *${STAND_NAME}* sudah *SELESAI DIANTAR* yaa! 🛵🎉`,
+      '',
+      '🍽️ *Selamat Menikmati!*',
+      'Semoga suka dengan hidangannya, dan jangan lupa kasih tahu teman-teman sekelas buat jajan di stand kami juga yaa hehe 😋🙏',
+      '',
+      'Terima kasih banyak sudah order di stand kami! Ditunggu pesanan berikutnya kak! ✨❤️'
+    ].join('\n');
+  }
+
+  // VERSI 2: PESANAN SELESAI DISERAHKAN DI KASIR STAND (PICKUP)
+  return [
+    `Halo kak *${customerName}*${customerClass}! 👋✨`,
+    `Pesananmu *#${orderNumber}* di *${STAND_NAME}* sudah *SELESAI DISERAHKAN* yaa! 🥤🎉`,
+    '',
+    '🍽️ *Selamat Menikmati!*',
+    'Semoga makanannya enak dan harimu makin seru & berenergi! Jangan lupa mampir dan jajan lagi nanti yaa 😋🙏',
+    '',
+    'Terima kasih banyak atas kunjungannya kak! Ditunggu kedatangannya kembali! ✨❤️'
+  ].join('\n');
+}
+
+/**
  * Ambil token Fonnte dari LocalStorage
  */
 export function getFonnteToken() {
@@ -180,6 +220,80 @@ export async function sendPickupNotification(order) {
     success: true,
     method: 'wa.me',
     message: 'WhatsApp terbuka dengan teks siap kirim!'
+  };
+}
+
+/**
+ * Mengirim notifikasi WhatsApp "Pesanan Selesai / Selamat Menikmati":
+ * - Jika ada Token Fonnte tersimpan: Kirim via HTTP API background otomatis.
+ * - Jika tidak ada / fetch gagal: Buka browser wa.me secara direct.
+ */
+export async function sendCompletedNotification(order) {
+  const phone = order.customer_phone;
+  const normalizedPhone = normalizeWaNumber(phone);
+
+  if (!normalizedPhone || normalizedPhone.length < 9) {
+    return {
+      success: false,
+      reason: 'Nomor WhatsApp pembeli tidak valid atau kosong.'
+    };
+  }
+
+  const messageText = createCompletedMessage(order);
+  const token = getFonnteToken();
+
+  // Mode 1: Jika ada Fonnte Token, kirim via background API otomatis
+  if (token) {
+    try {
+      const formData = new FormData();
+      formData.append('target', normalizedPhone);
+      formData.append('message', messageText);
+      formData.append('countryCode', '62');
+
+      const response = await fetch('https://api.fonnte.com/send', {
+        method: 'POST',
+        headers: {
+          Authorization: token
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+      if (result.status === true) {
+        return {
+          success: true,
+          method: 'fonnte',
+          message: 'Pesan selamat menikmati otomatis terkirim via Bot WhatsApp di background!'
+        };
+      } else {
+        console.warn('Fonnte sendCompleted error:', result);
+        // Fallback jika API Fonnte gagal/kuota habis: buka wa.me
+        window.open(`https://wa.me/${normalizedPhone}?text=${encodeURIComponent(messageText)}`, '_blank');
+        return {
+          success: true,
+          method: 'wa.me_fallback',
+          message: `Fonnte: ${result.reason || 'dialihkan ke WhatsApp Web/App'}`
+        };
+      }
+    } catch (err) {
+      console.warn('Gagal koneksi ke Fonnte API sendCompleted, dialihkan ke WhatsApp langsung:', err);
+      window.open(`https://wa.me/${normalizedPhone}?text=${encodeURIComponent(messageText)}`, '_blank');
+      return {
+        success: true,
+        method: 'wa.me_fallback',
+        message: 'Koneksi bot gagal, dialihkan ke WhatsApp langsung.'
+      };
+    }
+  }
+
+  // Mode 2 (Default jika belum ada token): Direct 1-Click WhatsApp via wa.me
+  const waUrl = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(messageText)}`;
+  window.open(waUrl, '_blank');
+
+  return {
+    success: true,
+    method: 'wa.me',
+    message: 'WhatsApp terbuka dengan ucapan selamat menikmati!'
   };
 }
 

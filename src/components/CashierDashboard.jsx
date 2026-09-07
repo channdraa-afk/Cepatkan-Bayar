@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
-import { sendPickupNotification, getFonnteToken } from '../lib/whatsapp';
+import { sendPickupNotification, sendCompletedNotification, getFonnteToken } from '../lib/whatsapp';
 import { markOrderWaNotified } from '../lib/storage';
 import WaBotModal from './WaBotModal';
 
@@ -23,6 +23,8 @@ export default function CashierDashboard({
   onClearAllOrders
 }) {
   const [activeTab, setActiveTab] = useState('active'); // 'active' | 'completed' | 'cancelled' | 'all'
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [confirmCancelId, setConfirmCancelId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
@@ -31,20 +33,26 @@ export default function CashierDashboard({
   const [sendingWaId, setSendingWaId] = useState(null);
   const [hasFonnteToken, setHasFonnteToken] = useState(() => Boolean(getFonnteToken()));
 
-  // Filter orders
-  const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'cooking');
+  // Filter Orders
   const completedOrders = orders.filter(o => o.status === 'completed');
   const cancelledOrders = orders.filter(o => o.status === 'cancelled');
-  
+  const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'cooking');
+
+  // Urutan: pending dulu (perlu segera diproses), lalu cooking
+  const sortedActiveOrders = [...activeOrders].sort((a, b) => {
+    if (a.status === 'pending' && b.status === 'cooking') return -1;
+    if (a.status === 'cooking' && b.status === 'pending') return 1;
+    return new Date(a.created_at) - new Date(b.created_at);
+  });
+
   const displayedOrders = activeTab === 'active' 
-    ? activeOrders 
-    : activeTab === 'completed' 
+    ? sortedActiveOrders 
+    : activeTab === 'completed'
     ? completedOrders 
     : activeTab === 'cancelled'
     ? cancelledOrders
     : orders;
 
-  // Rekapitulasi Omzet
   const totalOmzet = completedOrders.reduce((sum, o) => sum + o.total_price, 0);
   const totalTunai = completedOrders
     .filter(o => o.payment_method === 'Tunai')
@@ -53,7 +61,7 @@ export default function CashierDashboard({
     .filter(o => o.payment_method === 'QRIS')
     .reduce((sum, o) => sum + o.total_price, 0);
 
-  // Centang Selesai Dilayani (Sesuai permintaan Chandra: otomatis tersembunyi dari layar antrean aktif)
+  // Centang Selesai Dilayani & Kirim Notifikasi WA "Selamat Menikmati"
   const handleCompleteOrder = async (order) => {
     sound.playComplete();
     // Jika pesanan QRIS dan belum divalidasi, otomatis validasi saat diselesaikan
@@ -61,6 +69,49 @@ export default function CashierDashboard({
       await onValidatePayment(order.id, true);
     }
     await onUpdateStatus(order.id, 'completed');
+
+    // Otomatis kirim WhatsApp "Pesanan Selesai & Selamat Menikmati" ke pembeli
+    if (order.customer_phone) {
+      setSendingWaId(order.id);
+      try {
+        const result = await sendCompletedNotification(order);
+        if (result.success) {
+          setToastMsg(`✅ Pesanan ${order.order_number} selesai & WA "Selamat Menikmati" terkirim ke ${order.customer_name}!`);
+        } else {
+          setToastMsg(`Pesanan ${order.order_number} selesai dilayani.`);
+        }
+      } catch (err) {
+        console.warn('Gagal kirim WA selesai otomatis:', err);
+      } finally {
+        setSendingWaId(null);
+        setTimeout(() => setToastMsg(null), 5000);
+      }
+    } else {
+      setToastMsg(`Pesanan ${order.order_number} selesai dilayani.`);
+      setTimeout(() => setToastMsg(null), 4000);
+    }
+  };
+
+  // Kirim manual pesan WA "Selamat Menikmati" dari tab Riwayat Pesanan
+  const handleSendCompletedWaManual = async (order) => {
+    sound.playClick();
+    setSendingWaId(order.id);
+    try {
+      const result = await sendCompletedNotification(order);
+      if (result.success) {
+        sound.playComplete();
+        setToastMsg(`✅ Pesan "Selamat Menikmati" terkirim ke ${order.customer_name}!`);
+      } else {
+        sound.playRemove();
+        setToastMsg(`Gagal kirim WA: ${result.reason}`);
+      }
+    } catch {
+      sound.playRemove();
+      setToastMsg('Gagal mengirim WhatsApp.');
+    } finally {
+      setSendingWaId(null);
+      setTimeout(() => setToastMsg(null), 5000);
+    }
   };
 
   const handleStartCooking = async (orderId) => {
@@ -703,6 +754,23 @@ export default function CashierDashboard({
                         <CheckCircle2 className="w-4 h-4 text-sage-700" />
                         <span>Pesanan Sudah Selesai Dilayani</span>
                       </div>
+
+                      {order.customer_phone && (
+                        <button
+                          type="button"
+                          disabled={sendingWaId === order.id}
+                          onClick={() => handleSendCompletedWaManual(order)}
+                          className="w-full py-1.5 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-500 text-emerald-900 font-bold text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
+                          title="Kirim / ulangi notifikasi WA ucapan selamat menikmati ke pembeli"
+                        >
+                          {sendingWaId === order.id ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-700" />
+                          ) : (
+                            <MessageCircle className="w-3.5 h-3.5 text-emerald-700" />
+                          )}
+                          <span>Kirim / Ulangi WA "Selamat Menikmati"</span>
+                        </button>
+                      )}
                       
                       {/* Tombol Hapus Single Order (Testing) */}
                       <div className="flex justify-end pt-1">
