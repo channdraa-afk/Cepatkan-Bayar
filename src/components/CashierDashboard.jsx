@@ -551,10 +551,10 @@ export default function CashierDashboard({
                         {/* Tombol Centang Selesai Dilayani */}
                         <button
                           onClick={() => handleCompleteOrder(order)}
-                          className="btn-tactile-sage flex-1 py-2.5 text-xs flex items-center justify-center gap-1.5 font-black text-espresso shadow-tactile"
+                          className="btn-tactile-success flex-1 py-2.5 text-xs flex items-center justify-center gap-1.5 font-black text-white shadow-tactile"
                           title="Tandai selesai dilayani & sembunyikan dari antrean"
                         >
-                          <CheckCircle2 className="w-4 h-4 text-espresso" />
+                          <CheckCircle2 className="w-4 h-4 text-white" />
                           <span>Selesai Dilayani ✓</span>
                         </button>
 

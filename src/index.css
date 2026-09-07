@@ -16,6 +16,12 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  .btn-tactile-success {
+    @apply bg-emerald-600 text-white font-black border-2 border-espresso rounded-xl shadow-tactile transition-all duration-100 active:translate-y-1 active:shadow-tactile-pressed hover:bg-emerald-500 select-none disabled:opacity-50 disabled:pointer-events-none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   .btn-tactile-cream {
     @apply bg-cream-50 text-espresso font-bold border-2 border-espresso rounded-xl shadow-tactile transition-all duration-100 active:translate-y-1 active:shadow-tactile-pressed hover:bg-white select-none disabled:opacity-50 disabled:pointer-events-none;
     touch-action: manipulation;
