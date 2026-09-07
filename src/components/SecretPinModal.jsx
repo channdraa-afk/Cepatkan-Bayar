@@ -6,8 +6,7 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
 
-  // SHA-256 Hash of default PIN '28012010':
-  // 5a85661182e1459ac1c4cf36692329f0ba2c3b5ddcb90b37d5cfe7fb07ca6a27
+  // Secure SHA-256 Hash of default cashier PIN
   const DEFAULT_PIN_HASH = '5a85661182e1459ac1c4cf36692329f0ba2c3b5ddcb90b37d5cfe7fb07ca6a27';
 
   const sha256 = async (str) => {
