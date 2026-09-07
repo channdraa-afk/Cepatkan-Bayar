@@ -388,49 +388,7 @@ export default function CashierDashboard({
         </div>
       </div>
 
-      {/* Banner Tombol Reset Semua Pesanan Testing (Selesai & Batal) */}
-      {(activeTab === 'completed' || activeTab === 'cancelled') && displayedOrders.length > 0 && (
-        <div className="p-3.5 bg-rose-50 border-2 border-rose-500 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-tactile-sm animate-in fade-in">
-          <div className="flex items-center gap-2.5 text-rose-900">
-            <div className="w-8 h-8 rounded-xl bg-rose-200 border border-rose-600 flex items-center justify-center shrink-0">
-              <Trash2 className="w-4 h-4 text-rose-800" />
-            </div>
-            <div>
-              <h4 className="font-black text-xs sm:text-sm">Siap Mulai Bazar?</h4>
-              <p className="text-[11px] font-bold text-rose-800/80">
-                Hapus seluruh riwayat pesanan agar nomor antrean kembali ke <strong>#001</strong> dan omzet kembali ke <strong>Rp 0</strong>.
-              </p>
-            </div>
-          </div>
 
-          {confirmClearAll ? (
-            <div className="flex items-center gap-2 shrink-0 bg-white p-1.5 rounded-xl border border-rose-400">
-              <span className="text-[11px] font-black text-rose-700">Yakin hapus semua?</span>
-              <button
-                onClick={handleClearAll}
-                className="px-3 py-1.5 rounded-lg bg-rose-700 text-cream text-xs font-black border border-espresso hover:bg-rose-800 shadow-tactile-sm"
-              >
-                Ya, Hapus Sekarang!
-              </button>
-              <button
-                onClick={() => setConfirmClearAll(false)}
-                className="px-2.5 py-1.5 rounded-lg bg-cream text-espresso text-xs font-bold border border-espresso hover:bg-cream-200"
-              >
-                Batal
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setConfirmClearAll(true)}
-              className="px-3.5 py-2 rounded-xl bg-rose-700 text-cream text-xs font-black border-2 border-espresso shadow-tactile-sm hover:bg-rose-800 active:translate-y-0.5 transition-all flex items-center justify-center gap-1.5 shrink-0"
-              title="Hapus seluruh riwayat pesanan agar antrean kembali ke #001"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-cream" />
-              <span>🗑️ Hapus Semua Riwayat</span>
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Daftar Pesanan */}
       {displayedOrders.length === 0 ? (

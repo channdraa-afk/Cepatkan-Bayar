@@ -470,32 +470,7 @@ export default function FinancialModal({
               )}
             </button>
 
-            {expenses.length > 0 && (
-              confirmClear ? (
-                <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
-                  <span className="text-[11px] font-bold text-rose-700">Hapus semua modal?</span>
-                  <button
-                    onClick={handleResetAll}
-                    className="px-2.5 py-1.5 rounded-lg bg-rose-700 text-cream text-[11px] font-black border border-espresso hover:bg-rose-800"
-                  >
-                    Ya, Bersihkan
-                  </button>
-                  <button
-                    onClick={() => setConfirmClear(false)}
-                    className="px-2 py-1.5 rounded-lg bg-cream text-espresso text-[11px] font-bold border border-espresso hover:bg-cream-200"
-                  >
-                    Batal
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setConfirmClear(true)}
-                  className="text-xs font-bold text-rose-700 hover:text-rose-900 flex items-center gap-1 underline"
-                >
-                  <Trash2 className="w-3 h-3" /> Bersihkan Semua Modal
-                </button>
-              )
-            )}
+            {/* Tombol Bersihkan Semua Dinonaktifkan selama Bazar Live demi Keamanan Data */}
           </div>
 
         </div>

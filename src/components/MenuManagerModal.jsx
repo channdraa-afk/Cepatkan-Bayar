@@ -225,35 +225,7 @@ export default function MenuManagerModal({
                 <span className="text-xs font-bold text-espresso/70">
                   Total Tersedia: <strong>{menus.length}</strong> menu
                 </span>
-                {menus.length > 0 && (
-                  <div>
-                    {showClearConfirm ? (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] font-black text-rose-700">Yakin kosongkan semua?</span>
-                        <button
-                          onClick={handleClearAll}
-                          className="px-2 py-1 rounded bg-rose-700 text-cream text-[10px] font-black border border-espresso"
-                        >
-                          Ya, Kosongkan
-                        </button>
-                        <button
-                          onClick={() => setShowClearConfirm(false)}
-                          className="px-2 py-1 rounded bg-cream text-espresso text-[10px] font-bold border border-espresso"
-                        >
-                          Batal
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setShowClearConfirm(true)}
-                        className="text-xs font-bold text-rose-700 hover:underline flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Kosongkan Semua Menu</span>
-                      </button>
-                    )}
-                  </div>
-                )}
+                {/* Tombol Kosongkan Semua Dinonaktifkan selama Bazar Live demi Keamanan Data */}
               </div>
 
               {menus.length === 0 ? (
