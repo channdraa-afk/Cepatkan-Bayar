@@ -43,6 +43,7 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
   const isPending = order.status === 'pending';
   const isCooking = order.status === 'cooking';
   const isCompleted = order.status === 'completed';
+  const isCancelled = order.status === 'cancelled';
 
   const isDelivery = order.delivery_type === 'delivery' || (order.notes && order.notes.includes('🛵 Diantar'));
   const cleanNotes = order.display_notes || (order.notes || '')
@@ -161,6 +162,14 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
                     ? '🛵 Hore! Pesananmu sudah selesai & sedang meluncur diantar ke kelas!' 
                     : '🥤 Hore! Pesananmu sudah siap, yuk langsung ambil di meja kasir stand!'}
                 </span>
+              </div>
+            )}
+
+            {/* Banner Khusus Saat Dibatalkan / Ditolak */}
+            {isCancelled && (
+              <div className="mt-3 p-2.5 bg-rose-100 border-2 border-rose-500 rounded-xl text-center text-xs font-black text-rose-950 flex items-center justify-center gap-1.5 shadow-tactile-sm">
+                <AlertCircle className="w-4 h-4 text-rose-700 shrink-0" />
+                <span>⚠️ Pesanan ini telah dibatalkan / ditolak oleh kasir stand.</span>
               </div>
             )}
           </div>

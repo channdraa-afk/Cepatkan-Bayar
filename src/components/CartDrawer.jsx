@@ -65,28 +65,46 @@ export default function CartDrawer({
     // Gembok instan: cegah spam ketukan cepat / double-tap di layar sentuh HP
     if (isSubmittingRef.current || isSubmitting) return;
 
-    if (!customerName.trim()) {
-      setErrorMsg('Silakan tulis nama pemesan ya!');
+    // 1. Validasi Nama Pemesan (minimal 3 karakter)
+    if (!customerName.trim() || customerName.trim().length < 3) {
+      setErrorMsg('Silakan tulis nama pemesan yang jelas (minimal 3 huruf)!');
       return;
     }
-    if (!customerClass.trim()) {
-      setErrorMsg('Silakan tulis kelas / ruangan (contoh: XI RPL 2)!');
+
+    // 2. Validasi Kelas / Ruangan (minimal 2 karakter)
+    if (!customerClass.trim() || customerClass.trim().length < 2) {
+      setErrorMsg('Silakan tulis kelas / ruangan dengan jelas (contoh: XI RPL 2)!');
       return;
     }
-    if (!customerPhone.trim()) {
-      setErrorMsg('Silakan isi nomor WhatsApp/HP aktif untuk verifikasi pesanan!');
+
+    // 3. Validasi Nomor WhatsApp Indonesia (08xx / 628xx, 10-14 digit angka murni)
+    const cleanedPhone = customerPhone.replace(/\D/g, '');
+    const isValidPhone = (cleanedPhone.startsWith('08') || cleanedPhone.startsWith('628')) && 
+                         cleanedPhone.length >= 10 && 
+                         cleanedPhone.length <= 14;
+    if (!isValidPhone) {
+      setErrorMsg('Nomor WhatsApp tidak valid! Masukkan nomor WA aktif (contoh: 081234567890) yang diawali 08 atau 628 (10-14 digit angka).');
       return;
     }
+
+    // 4. Cek Keranjang Kosong
     if (cartItems.length === 0) {
       setErrorMsg('Keranjangmu masih kosong!');
       return;
     }
 
-    // Proteksi anti-iseng: Cek jeda pemesanan dari perangkat yang sama (cooldown 15 detik)
+    // 5. Batas Maksimal Kuantiti per Transaksi (cegah spam borong habis stok bazar)
+    const totalItemsCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
+    if (totalItemsCount > 20) {
+      setErrorMsg('Maksimal pemesanan dalam 1 kali transaksi adalah 20 porsi. Untuk pesanan kelas berjumlah banyak, silakan hubungi kasir langsung ya!');
+      return;
+    }
+
+    // 6. Proteksi anti-iseng: Cek jeda pemesanan dari perangkat yang sama (cooldown 30 detik)
     try {
       const lastOrderTs = localStorage.getItem('cepatkanbayar_last_order_ts');
-      if (lastOrderTs && Date.now() - parseInt(lastOrderTs) < 15000) {
-        const remaining = Math.ceil((15000 - (Date.now() - parseInt(lastOrderTs))) / 1000);
+      if (lastOrderTs && Date.now() - parseInt(lastOrderTs) < 30000) {
+        const remaining = Math.ceil((30000 - (Date.now() - parseInt(lastOrderTs))) / 1000);
         setErrorMsg(`Mohon tunggu ${remaining} detik lagi sebelum mengirim pesanan berikutnya (anti-spam stand).`);
         return;
       }
@@ -292,14 +310,14 @@ export default function CartDrawer({
                   <input
                     type="tel"
                     required
-                    placeholder="Contoh: 081234567890"
+                    placeholder="Contoh: 081234567890 (Wajib nomor asli)"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border-2 border-espresso bg-cream-50 text-espresso font-bold text-sm focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm placeholder:text-espresso/40"
                   />
                   <p className="text-[10px] text-emerald-800 font-bold mt-1 flex items-center gap-1">
-                    <span>💬</span>
-                    <span>Untuk kirim notifikasi WhatsApp saat pesanan sudah siap diambil di stand!</span>
+                    <span>🛡️</span>
+                    <span>Wajib nomor WA aktif untuk verifikasi pesanan & notifikasi stan bazar.</span>
                   </p>
                 </div>
 

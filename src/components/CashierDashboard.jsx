@@ -148,12 +148,12 @@ export default function CashierDashboard({
     }
   };
 
-  // Batalkan Pesanan & Restorasi Stok Otomatis
+  // Batalkan / Tolak Pesanan Fiktif & Restorasi Stok Otomatis
   const handleCancelOrder = async (order) => {
     sound.playRemove();
     await onUpdateStatus(order.id, 'cancelled');
     setConfirmCancelId(null);
-    setToastMsg(`Pesanan ${order.order_number} (${order.customer_name}) dibatalkan. Stok menu otomatis dikembalikan!`);
+    setToastMsg(`🚫 Pesanan ${order.order_number} (${order.customer_name}) ditolak sebagai pesanan fiktif. Stok menu otomatis dikembalikan!`);
     setTimeout(() => setToastMsg(null), 5000);
   };
 
@@ -673,34 +673,44 @@ export default function CashierDashboard({
                           <span>Selesai Dilayani ✓</span>
                         </button>
 
-                        {/* Tombol Batalkan / Tolak Pesanan */}
+                        {/* Tombol Tolak / Pesanan Fiktif */}
                         <button
                           onClick={() => setConfirmCancelId(order.id)}
-                          className="p-2.5 rounded-xl bg-rose-100 text-rose-700 hover:bg-rose-200 border border-rose-400 text-xs font-bold shadow-tactile-sm"
-                          title="Batalkan pesanan & kembalikan stok menu otomatis"
+                          className="px-2.5 py-2.5 rounded-xl bg-rose-100 text-rose-800 hover:bg-rose-200 border-2 border-rose-400 text-xs font-black shadow-tactile-sm flex items-center gap-1 shrink-0"
+                          title="Tolak pesanan fiktif & otomatis kembalikan stok menu ke etalase"
                         >
-                          <Ban className="w-4 h-4" />
+                          <Ban className="w-4 h-4 text-rose-700" />
+                          <span className="hidden sm:inline">Tolak / Fiktif</span>
                         </button>
                       </div>
 
-                      {/* Modal Konfirmasi Pembatalan Inline */}
+                      {/* Modal Konfirmasi Pembatalan / Tolak Pesanan Fiktif Inline */}
                       {confirmCancelId === order.id && (
-                        <div className="p-2.5 bg-rose-50 border-2 border-rose-500 rounded-xl text-xs space-y-2 animate-in fade-in zoom-in-95">
-                          <p className="font-black text-rose-900 leading-tight">
-                            ⚠️ Batalkan pesanan #{order.order_number}? Stok seluruh menu yang dipesan akan otomatis dikembalikan ke etalase.
-                          </p>
-                          <div className="flex items-center gap-2">
+                        <div className="p-3 bg-rose-50 border-2 border-rose-500 rounded-xl text-xs space-y-2.5 animate-in fade-in zoom-in-95 mt-2">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="font-black text-rose-900 leading-tight">
+                                Tolak pesanan #{order.order_number} ({order.customer_name})?
+                              </p>
+                              <p className="text-[11px] font-bold text-rose-700/90 mt-0.5">
+                                Pesanan fiktif/iseng akan dibatalkan, langsung hilang dari antrean aktif, dan stok seluruh menu otomatis dikembalikan ke etalase.
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 pt-1">
                             <button
                               onClick={() => handleCancelOrder(order)}
-                              className="px-3 py-1.5 rounded-lg bg-rose-700 text-cream font-black text-xs border border-espresso shadow-tactile-sm hover:bg-rose-800"
+                              className="px-3 py-2 rounded-xl bg-rose-700 text-cream font-black text-xs border-2 border-espresso shadow-tactile-sm hover:bg-rose-800 flex items-center gap-1.5"
                             >
-                              Ya, Batalkan & Kembalikan Stok
+                              <Ban className="w-3.5 h-3.5" />
+                              <span>Ya, Tolak Pesanan Fiktif</span>
                             </button>
                             <button
                               onClick={() => setConfirmCancelId(null)}
-                              className="px-2.5 py-1.5 rounded-lg bg-cream text-espresso font-bold text-xs border border-espresso hover:bg-cream-100"
+                              className="px-3 py-2 rounded-xl bg-cream text-espresso font-black text-xs border-2 border-espresso hover:bg-cream-100 shadow-tactile-sm"
                             >
-                              Jangan Batal
+                              Batal
                             </button>
                           </div>
                         </div>
