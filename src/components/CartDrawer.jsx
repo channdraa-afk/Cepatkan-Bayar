@@ -13,6 +13,7 @@ export default function CartDrawer({
   onSubmitOrder
 }) {
   const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Tunai');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,10 +29,24 @@ export default function CartDrawer({
       setErrorMsg('Silakan tulis nama pemesan ya!');
       return;
     }
+    if (!customerPhone.trim()) {
+      setErrorMsg('Silakan isi nomor WhatsApp/HP aktif untuk verifikasi pesanan!');
+      return;
+    }
     if (cartItems.length === 0) {
       setErrorMsg('Keranjangmu masih kosong!');
       return;
     }
+
+    // Proteksi anti-iseng: Cek jeda pemesanan dari perangkat yang sama (cooldown 30 detik)
+    try {
+      const lastOrderTs = localStorage.getItem('cepatkanbayar_last_order_ts');
+      if (lastOrderTs && Date.now() - parseInt(lastOrderTs) < 30000) {
+        const remaining = Math.ceil((30000 - (Date.now() - parseInt(lastOrderTs))) / 1000);
+        setErrorMsg(`Mohon tunggu ${remaining} detik lagi sebelum mengirim pesanan berikutnya (anti-spam stand).`);
+        return;
+      }
+    } catch (err) {}
 
     // Periksa apakah ada item yang melebihi stok terbaru
     for (const item of cartItems) {
@@ -47,6 +62,7 @@ export default function CartDrawer({
     try {
       await onSubmitOrder({
         customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
         notes: notes.trim(),
         paymentMethod,
         items: cartItems.map(i => ({
@@ -57,8 +73,14 @@ export default function CartDrawer({
         })),
         totalPrice
       });
+      // Set timestamp anti-spam
+      try {
+        localStorage.setItem('cepatkanbayar_last_order_ts', Date.now().toString());
+      } catch (err) {}
+
       // Reset form
       setCustomerName('');
+      setCustomerPhone('');
       setNotes('');
       onClose();
     } catch (err) {
@@ -174,6 +196,23 @@ export default function CartDrawer({
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border-2 border-espresso bg-cream-50 text-espresso font-bold text-sm focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm placeholder:text-espresso/40"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-espresso uppercase tracking-wider mb-1">
+                    No. WhatsApp / HP Aktif <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="Contoh: 08123456789"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border-2 border-espresso bg-cream-50 text-espresso font-bold text-sm focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm placeholder:text-espresso/40"
+                  />
+                  <p className="text-[10px] text-espresso/60 font-bold mt-1">
+                    🔒 Untuk verifikasi pesanan & panggilan antrean oleh kasir stand
+                  </p>
                 </div>
 
                 <div>

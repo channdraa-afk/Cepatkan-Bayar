@@ -58,7 +58,7 @@ export default function MenuManagerModal({
     setEditingId(item.id);
     setName(item.name);
     setCategory(item.category);
-    setPrice(item.price.toString());
+    setPrice(item.price ? Number(item.price).toLocaleString('id-ID') : '');
     setStock(item.stock.toString());
     setDescription(item.description || '');
     setImage(item.image || '');
@@ -111,16 +111,26 @@ export default function MenuManagerModal({
     }
   };
 
+  const handlePriceChange = (e) => {
+    const raw = e.target.value.replace(/\D/g, '');
+    if (!raw) {
+      setPrice('');
+    } else {
+      setPrice(Number(raw).toLocaleString('id-ID'));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !price) return;
+    const cleanPrice = parseInt(price.replace(/\D/g, '')) || 0;
+    if (!name.trim() || !cleanPrice) return;
 
     sound.playComplete();
 
     const payload = {
       name: name.trim(),
       category: category.trim(),
-      price: parseInt(price) || 0,
+      price: cleanPrice,
       stock: parseInt(stock) || 0,
       description: description.trim(),
       image: image.trim() || 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=400&q=80',
@@ -397,14 +407,25 @@ export default function MenuManagerModal({
                   <label className="block text-xs font-black text-espresso uppercase mb-1">
                     Harga (Rp) <span className="text-rose-600">*</span>
                   </label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="Contoh: 15000"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border-2 border-espresso bg-white font-bold text-xs text-espresso focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-espresso/60 select-none">
+                      Rp
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      required
+                      placeholder="15.000"
+                      value={price}
+                      onChange={handlePriceChange}
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border-2 border-espresso bg-white font-bold text-xs text-espresso focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm"
+                    />
+                  </div>
+                  {price && (
+                    <span className="text-[10px] font-bold text-caramel mt-0.5 block">
+                      = Rp {price}
+                    </span>
+                  )}
                 </div>
 
                 {/* Stok Awal */}

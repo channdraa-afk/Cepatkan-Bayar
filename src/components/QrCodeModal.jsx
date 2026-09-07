@@ -1,21 +1,36 @@
-import React, { useState } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import React, { useState, useRef } from 'react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { X, QrCode, Download, Printer, Copy, Check, Banknote, Globe } from 'lucide-react';
 import { sound } from '../lib/audio';
 
 export default function QrCodeModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('web'); // 'web' | 'qris'
   const [copied, setCopied] = useState(false);
+  const canvasRef = useRef(null);
   
   if (!isOpen) return null;
 
-  const currentUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cepatkan-bayar.vercel.app';
+  // Kunci ke domain publik produksi agar pembeli TIDAK dimintai login Vercel
+  const targetUrl = 'https://cepatkan-bayar.vercel.app';
 
   const handleCopy = () => {
     sound.playClick();
-    navigator.clipboard.writeText(currentUrl);
+    navigator.clipboard.writeText(targetUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownloadWebQr = () => {
+    sound.playClick();
+    if (canvasRef.current) {
+      const pngUrl = canvasRef.current.toDataURL('image/png');
+      const downloadLink = document.createElement('a');
+      downloadLink.href = pngUrl;
+      downloadLink.download = 'qr-menu-stand-cepatkan-bayar.png';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
   };
 
   const handlePrint = () => {
@@ -77,8 +92,9 @@ export default function QrCodeModal({ isOpen, onClose }) {
             </p>
 
             <div className="p-3.5 bg-white border-2 border-espresso rounded-2xl shadow-tactile inline-block mx-auto mb-3">
-              <QRCodeSVG
-                value={currentUrl}
+              <QRCodeCanvas
+                ref={canvasRef}
+                value={targetUrl}
                 size={180}
                 level="H"
                 includeMargin={false}
@@ -88,22 +104,31 @@ export default function QrCodeModal({ isOpen, onClose }) {
             </div>
 
             <p className="text-[11px] font-mono font-bold text-espresso/80 truncate mb-3 bg-cream-100 p-2 rounded-lg border border-espresso/20">
-              {currentUrl}
+              {targetUrl}
             </p>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCopy}
+                  className="btn-tactile-cream flex-1 py-2 text-xs flex items-center justify-center gap-1.5"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-sage-700" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? 'Tersalin!' : 'Salin Link'}
+                </button>
+                <button
+                  onClick={handlePrint}
+                  className="btn-tactile-cream flex-1 py-2 text-xs flex items-center justify-center gap-1.5"
+                >
+                  <Printer className="w-3.5 h-3.5" /> Cetak QR
+                </button>
+              </div>
+
               <button
-                onClick={handleCopy}
-                className="btn-tactile-cream flex-1 py-2 text-xs flex items-center justify-center gap-1.5"
+                onClick={handleDownloadWebQr}
+                className="btn-tactile-primary w-full py-2.5 text-xs flex items-center justify-center gap-1.5 font-black shadow-tactile"
               >
-                {copied ? <Check className="w-3.5 h-3.5 text-sage-700" /> : <Copy className="w-3.5 h-3.5" />}
-                {copied ? 'Tersalin!' : 'Salin Link'}
-              </button>
-              <button
-                onClick={handlePrint}
-                className="btn-tactile-primary flex-1 py-2 text-xs flex items-center justify-center gap-1.5"
-              >
-                <Printer className="w-3.5 h-3.5" /> Cetak QR
+                <Download className="w-4 h-4" /> Unduh Gambar QR (PNG)
               </button>
             </div>
           </div>
@@ -127,15 +152,15 @@ export default function QrCodeModal({ isOpen, onClose }) {
               <a
                 href="/qris.png"
                 download="qris-stand-bazar.png"
-                className="btn-tactile-cream flex-1 py-2 text-xs flex items-center justify-center gap-1.5 font-bold"
+                className="btn-tactile-primary flex-1 py-2.5 text-xs flex items-center justify-center gap-1.5 font-black shadow-tactile"
               >
-                <Download className="w-3.5 h-3.5" /> Unduh QRIS
+                <Download className="w-4 h-4" /> Unduh QRIS
               </a>
               <button
                 onClick={handlePrint}
-                className="btn-tactile-primary flex-1 py-2 text-xs flex items-center justify-center gap-1.5 font-black"
+                className="btn-tactile-cream flex-1 py-2.5 text-xs flex items-center justify-center gap-1.5 font-bold"
               >
-                <Printer className="w-3.5 h-3.5" /> Cetak QRIS
+                <Printer className="w-4 h-4" /> Cetak QRIS
               </button>
             </div>
           </div>

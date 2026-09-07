@@ -34,10 +34,29 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
     setError(false);
   };
 
-  const verifyPin = (candidate) => {
-    // PIN kasir rahasia: 28012010
-    const validPin = import.meta.env.VITE_CASHIER_PIN || '28012010';
-    if (candidate === validPin) {
+  // SHA-256 Hash of default PIN '28012010':
+  // 5a85661182e1459ac1c4cf36692329f0ba2c3b5ddcb90b37d5cfe7fb07ca6a27
+  const DEFAULT_PIN_HASH = '5a85661182e1459ac1c4cf36692329f0ba2c3b5ddcb90b37d5cfe7fb07ca6a27';
+
+  const sha256 = async (str) => {
+    try {
+      const utf8 = new TextEncoder().encode(str);
+      const hashBuffer = await window.crypto.subtle.digest('SHA-256', utf8);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) {
+      return '';
+    }
+  };
+
+  const verifyPin = async (candidate) => {
+    // Cek env variable custom jika ada, atau bandingkan hash SHA-256
+    const customPin = import.meta.env.VITE_CASHIER_PIN;
+    const candidateHash = await sha256(candidate);
+
+    const isValid = (customPin && candidate === customPin) || (candidateHash === DEFAULT_PIN_HASH);
+
+    if (isValid) {
       sound.playComplete();
       setPin('');
       setError(false);

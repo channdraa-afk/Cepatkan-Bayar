@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   CheckCircle2, Clock, Utensils, DollarSign, Package, QrCode, 
-  Settings, Volume2, ArrowLeft, RefreshCw, AlertCircle, Banknote, Sparkles, Filter
+  Settings, Volume2, ArrowLeft, RefreshCw, AlertCircle, Banknote, Sparkles, Filter,
+  X, MessageCircle, Ban
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
@@ -16,17 +17,22 @@ export default function CashierDashboard({
   onOpenSettings,
   onExitCashier
 }) {
-  const [activeTab, setActiveTab] = useState('active'); // 'active' | 'completed' | 'all'
+  const [activeTab, setActiveTab] = useState('active'); // 'active' | 'completed' | 'cancelled' | 'all'
   const [cashInputs, setCashInputs] = useState({}); // { [orderId]: number }
+  const [confirmCancelId, setConfirmCancelId] = useState(null);
+  const [toastMsg, setToastMsg] = useState(null);
 
   // Filter orders
   const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'cooking');
   const completedOrders = orders.filter(o => o.status === 'completed');
+  const cancelledOrders = orders.filter(o => o.status === 'cancelled');
   
   const displayedOrders = activeTab === 'active' 
     ? activeOrders 
     : activeTab === 'completed' 
     ? completedOrders 
+    : activeTab === 'cancelled'
+    ? cancelledOrders
     : orders;
 
   // Rekapitulasi Omzet
@@ -59,6 +65,15 @@ export default function CashierDashboard({
   const handleStartCooking = async (orderId) => {
     sound.playClick();
     await onUpdateStatus(orderId, 'cooking');
+  };
+
+  // Batalkan Pesanan & Restorasi Stok Otomatis
+  const handleCancelOrder = async (order) => {
+    sound.playRemove();
+    await onUpdateStatus(order.id, 'cancelled');
+    setConfirmCancelId(null);
+    setToastMsg(`Pesanan ${order.order_number} (${order.customer_name}) dibatalkan. Stok menu otomatis dikembalikan!`);
+    setTimeout(() => setToastMsg(null), 5000);
   };
 
   return (
@@ -195,9 +210,17 @@ export default function CashierDashboard({
         </div>
       </div>
 
+      {/* Toast Notifikasi Aksi */}
+      {toastMsg && (
+        <div className="p-3 bg-amber-100 border-2 border-amber-600 rounded-xl text-amber-900 text-xs font-black shadow-tactile-sm flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+          <span>🔔 {toastMsg}</span>
+          <button onClick={() => setToastMsg(null)} className="text-amber-800 hover:text-amber-950 font-black">✕</button>
+        </div>
+      )}
+
       {/* Tabs Filter Pesanan */}
-      <div className="flex items-center justify-between border-b-2 border-espresso pb-2">
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-espresso pb-2 gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => {
               sound.playClick();
@@ -233,10 +256,29 @@ export default function CashierDashboard({
               ({completedOrders.length})
             </span>
           </button>
+
+          <button
+            onClick={() => {
+              sound.playClick();
+              setActiveTab('cancelled');
+            }}
+            className={`px-3 py-2 rounded-xl text-xs font-black border-2 border-espresso transition-all flex items-center gap-1.5 ${
+              activeTab === 'cancelled'
+                ? 'bg-rose-700 text-cream shadow-tactile'
+                : 'bg-cream-100 text-espresso hover:bg-cream-200'
+            }`}
+          >
+            <span>Dibatalkan</span>
+            {cancelledOrders.length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-rose-200 text-rose-900 text-[10px] font-black">
+                {cancelledOrders.length}
+              </span>
+            )}
+          </button>
         </div>
 
         <div className="text-xs font-bold text-espresso/60 hidden sm:block">
-          {activeTab === 'active' ? '⚡ Pesanan aktif otomatis tersembunyi setelah dicentang selesai' : 'Arsip seluruh pesanan selesai'}
+          {activeTab === 'active' ? '⚡ Pesanan aktif otomatis tersembunyi setelah dicentang selesai' : activeTab === 'cancelled' ? 'Daftar pesanan batal & stok telah dikembalikan' : 'Arsip seluruh pesanan selesai'}
         </div>
       </div>
 
@@ -261,6 +303,7 @@ export default function CashierDashboard({
             const isPending = order.status === 'pending';
             const isCooking = order.status === 'cooking';
             const isCompleted = order.status === 'completed';
+            const isCancelled = order.status === 'cancelled';
             const currentCash = cashInputs[order.id] || 0;
             const change = currentCash > order.total_price ? currentCash - order.total_price : 0;
 
@@ -268,7 +311,9 @@ export default function CashierDashboard({
               <div
                 key={order.id}
                 className={`card-tactile p-4 flex flex-col justify-between transition-all ${
-                  isCompleted 
+                  isCancelled
+                    ? 'bg-rose-50/60 border-rose-400 opacity-75'
+                    : isCompleted 
                     ? 'bg-cream-200/40 opacity-80' 
                     : isCooking 
                     ? 'bg-caramel-50/40 border-caramel' 
@@ -294,6 +339,18 @@ export default function CashierDashboard({
                       <p className="text-sm font-black text-espresso mt-0.5">
                         {order.customer_name}
                       </p>
+                      {order.customer_phone && (
+                        <a
+                          href={`https://wa.me/62${order.customer_phone.replace(/^0/, '').replace(/\D/g, '')}?text=${encodeURIComponent(`Halo kak ${order.customer_name}, kami dari stand bazar CepatkanBayar terkait pesanan ${order.order_number}...`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-2 py-0.5 rounded-md border border-emerald-400 mt-1 transition-all"
+                          title="Hubungi atau verifikasi pembeli via WhatsApp"
+                        >
+                          <MessageCircle className="w-3 h-3 text-emerald-700" />
+                          <span>WA: {order.customer_phone}</span>
+                        </a>
+                      )}
                     </div>
 
                     <div className="text-right">
@@ -303,9 +360,10 @@ export default function CashierDashboard({
                       <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black ${
                         isPending ? 'bg-amber-200 text-amber-900' :
                         isCooking ? 'bg-caramel text-cream' :
-                        'bg-sage text-espresso'
+                        isCompleted ? 'bg-sage text-espresso' :
+                        'bg-rose-200 text-rose-900'
                       }`}>
-                        {isPending ? 'Menunggu' : isCooking ? 'Sedang Diracik' : 'Selesai'}
+                        {isPending ? 'Menunggu' : isCooking ? 'Sedang Diracik' : isCompleted ? 'Selesai' : 'Dibatalkan'}
                       </span>
                     </div>
                   </div>
@@ -341,7 +399,7 @@ export default function CashierDashboard({
                   </div>
 
                   {/* Quick Change Calculator (Hanya untuk pesanan aktif yang belum selesai) */}
-                  {!isCompleted && order.payment_method === 'Tunai' && (
+                  {!isCompleted && !isCancelled && order.payment_method === 'Tunai' && (
                     <div className="mt-3 p-2.5 bg-cream-100 rounded-xl border border-espresso/30 text-xs space-y-2">
                       <div className="flex items-center justify-between text-[11px] font-bold text-espresso/70">
                         <span>Hitung Kembalian Cepat:</span>
@@ -387,33 +445,72 @@ export default function CashierDashboard({
                 </div>
 
                 {/* Tombol Aksi Kasir */}
-                <div className="mt-4 pt-3 border-t-2 border-espresso flex items-center gap-2">
-                  {!isCompleted ? (
-                    <>
-                      {isPending && (
-                        <button
-                          onClick={() => handleStartCooking(order.id)}
-                          className="btn-tactile-cream px-3 py-2 text-xs flex items-center justify-center gap-1.5 font-bold"
-                          title="Tandai sedang diracik"
-                        >
-                          <Utensils className="w-3.5 h-3.5" />
-                          <span>Racik</span>
-                        </button>
-                      )}
+                <div className="mt-4 pt-3 border-t-2 border-espresso">
+                  {!isCompleted && !isCancelled ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        {isPending && (
+                          <button
+                            onClick={() => handleStartCooking(order.id)}
+                            className="btn-tactile-cream px-3 py-2.5 text-xs flex items-center justify-center gap-1.5 font-bold"
+                            title="Tandai sedang diracik"
+                          >
+                            <Utensils className="w-3.5 h-3.5" />
+                            <span>Racik</span>
+                          </button>
+                        )}
 
-                      {/* Tombol Centang Selesai Dilayani */}
-                      <button
-                        onClick={() => handleCompleteOrder(order)}
-                        className="btn-tactile-sage flex-1 py-2.5 text-xs flex items-center justify-center gap-1.5 font-black text-espresso shadow-tactile"
-                        title="Tandai selesai dilayani & sembunyikan dari antrean"
-                      >
-                        <CheckCircle2 className="w-4 h-4 text-espresso" />
-                        <span>Selesai Dilayani ✓</span>
-                      </button>
-                    </>
-                  ) : (
+                        {/* Tombol Centang Selesai Dilayani */}
+                        <button
+                          onClick={() => handleCompleteOrder(order)}
+                          className="btn-tactile-sage flex-1 py-2.5 text-xs flex items-center justify-center gap-1.5 font-black text-espresso shadow-tactile"
+                          title="Tandai selesai dilayani & sembunyikan dari antrean"
+                        >
+                          <CheckCircle2 className="w-4 h-4 text-espresso" />
+                          <span>Selesai Dilayani ✓</span>
+                        </button>
+
+                        {/* Tombol Batalkan / Tolak Pesanan */}
+                        <button
+                          onClick={() => setConfirmCancelId(order.id)}
+                          className="p-2.5 rounded-xl bg-rose-100 text-rose-700 hover:bg-rose-200 border border-rose-400 text-xs font-bold shadow-tactile-sm"
+                          title="Batalkan pesanan & kembalikan stok menu otomatis"
+                        >
+                          <Ban className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Modal Konfirmasi Pembatalan Inline */}
+                      {confirmCancelId === order.id && (
+                        <div className="p-2.5 bg-rose-50 border-2 border-rose-500 rounded-xl text-xs space-y-2 animate-in fade-in zoom-in-95">
+                          <p className="font-black text-rose-900 leading-tight">
+                            ⚠️ Batalkan pesanan #{order.order_number}? Stok seluruh menu yang dipesan akan otomatis dikembalikan ke etalase.
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleCancelOrder(order)}
+                              className="px-3 py-1.5 rounded-lg bg-rose-700 text-cream font-black text-xs border border-espresso shadow-tactile-sm hover:bg-rose-800"
+                            >
+                              Ya, Batalkan & Kembalikan Stok
+                            </button>
+                            <button
+                              onClick={() => setConfirmCancelId(null)}
+                              className="px-2.5 py-1.5 rounded-lg bg-cream text-espresso font-bold text-xs border border-espresso hover:bg-cream-100"
+                            >
+                              Jangan Batal
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : isCompleted ? (
                     <div className="w-full text-center py-1 text-xs font-bold text-sage-800 bg-sage-100 rounded-lg border border-sage-600 flex items-center justify-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Pesanan Sudah Selesai
+                    </div>
+                  ) : (
+                    <div className="w-full text-center py-1.5 text-xs font-black text-rose-800 bg-rose-100 rounded-lg border border-rose-400 flex items-center justify-center gap-1.5">
+                      <Ban className="w-3.5 h-3.5 text-rose-700" />
+                      <span>Pesanan Dibatalkan (Stok Dikembalikan)</span>
                     </div>
                   )}
                 </div>

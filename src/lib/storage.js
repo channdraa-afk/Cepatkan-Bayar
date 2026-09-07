@@ -129,11 +129,29 @@ export const quickAddStock = async (id, amount) => {
   return await updateMenuStock(id, currentStock + amount);
 };
 
+// Helper untuk membaca dan mengekstrak nomor telepon jika tersimpan di catatan
+const parseOrder = (order) => {
+  if (!order) return order;
+  let phone = order.customer_phone || '';
+  let notes = order.notes || '';
+  if (!phone && notes.includes('[WA:')) {
+    const match = notes.match(/\[WA:\s*([^\]]+)\]/);
+    if (match) {
+      phone = match[1].trim();
+    }
+  }
+  return {
+    ...order,
+    customer_phone: phone
+  };
+};
+
 // ==================== ORDERS ====================
 export const getLocalOrders = () => {
   try {
     const data = localStorage.getItem(LOCAL_STORAGE_ORDERS_KEY);
-    return data ? JSON.parse(data) : [];
+    const parsed = data ? JSON.parse(data) : [];
+    return parsed.map(parseOrder);
   } catch (e) {
     return [];
   }
@@ -148,7 +166,7 @@ export const fetchOrders = async () => {
         .select('*')
         .order('created_at', { ascending: false });
       if (!error && data) {
-        return data;
+        return data.map(parseOrder);
       }
     } catch (err) {
       console.warn('Gagal fetch Supabase orders, fallback ke lokal:', err);
@@ -157,17 +175,24 @@ export const fetchOrders = async () => {
   return getLocalOrders();
 };
 
-export const createOrder = async ({ customerName, notes, items, totalPrice, paymentMethod }) => {
+export const createOrder = async ({ customerName, customerPhone, notes, items, totalPrice, paymentMethod }) => {
   // Hitung nomor antrean
   const currentOrders = await fetchOrders();
   const nextNum = currentOrders.length + 1;
   const orderNumber = `#${String(nextNum).padStart(3, '0')}`;
 
+  const cleanPhone = (customerPhone || '').trim();
+  let fullNotes = (notes || '').trim();
+  if (cleanPhone) {
+    fullNotes = `[WA: ${cleanPhone}] ${fullNotes}`.trim();
+  }
+
   const newOrder = {
     id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     order_number: orderNumber,
     customer_name: customerName.trim(),
-    notes: (notes || '').trim(),
+    customer_phone: cleanPhone,
+    notes: fullNotes,
     items: items,
     total_price: totalPrice,
     payment_method: paymentMethod || 'Tunai',
@@ -190,7 +215,21 @@ export const createOrder = async ({ customerName, notes, items, totalPrice, paym
   const supabase = getSupabase();
   if (supabase) {
     try {
-      const { error } = await supabase.from('orders').insert([newOrder]);
+      // Payload yang sesuai dengan kolom tabel orders Supabase
+      const supabasePayload = {
+        id: newOrder.id,
+        order_number: newOrder.order_number,
+        customer_name: newOrder.customer_name,
+        notes: newOrder.notes,
+        items: newOrder.items,
+        total_price: newOrder.total_price,
+        payment_method: newOrder.payment_method,
+        status: newOrder.status,
+        cash_given: newOrder.cash_given,
+        change_amount: newOrder.change_amount,
+        created_at: newOrder.created_at
+      };
+      const { error } = await supabase.from('orders').insert([supabasePayload]);
       if (error) console.error('Supabase insert error:', error);
     } catch (err) {
       console.warn('Gagal insert order Supabase:', err);
@@ -209,6 +248,21 @@ export const createOrder = async ({ customerName, notes, items, totalPrice, paym
 };
 
 export const updateOrderStatus = async (orderId, newStatus, extraData = {}) => {
+  // Jika status dibatalkan (cancelled), kembalikan kuantiti stok setiap menu yang dipesan
+  if (newStatus === 'cancelled') {
+    const allOrders = await fetchOrders();
+    const targetOrder = allOrders.find(o => o.id === orderId);
+
+    // Pastikan order ditemukan dan sebelumnya belum cancelled (mencegah double refund)
+    if (targetOrder && targetOrder.status !== 'cancelled' && Array.isArray(targetOrder.items)) {
+      for (const item of targetOrder.items) {
+        if (item.id && item.qty) {
+          await quickAddStock(item.id, Number(item.qty));
+        }
+      }
+    }
+  }
+
   const supabase = getSupabase();
   if (supabase) {
     try {
