@@ -272,7 +272,7 @@ export default function CartDrawer({
                 {/* 3. Nomor WhatsApp */}
                 <div>
                   <label className="block text-xs font-black text-espresso uppercase tracking-wider mb-1">
-                    No. WhatsApp / HP Aktif <span className="text-rose-600">*</span>
+                    No. WhatsApp Aktif <span className="text-rose-600">*</span>
                   </label>
                   <input
                     type="tel"
@@ -282,8 +282,9 @@ export default function CartDrawer({
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border-2 border-espresso bg-cream-50 text-espresso font-bold text-sm focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm placeholder:text-espresso/40"
                   />
-                  <p className="text-[10px] text-espresso/60 font-bold mt-1">
-                    🔒 Untuk verifikasi pesanan & panggilan antrean oleh kasir stand
+                  <p className="text-[10px] text-emerald-800 font-bold mt-1 flex items-center gap-1">
+                    <span>💬</span>
+                    <span>Untuk kirim notifikasi WhatsApp saat pesanan sudah siap diambil di stand!</span>
                   </p>
                 </div>
 

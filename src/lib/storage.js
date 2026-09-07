@@ -152,12 +152,19 @@ const parseOrder = (order) => {
     (order.payment_method === 'QRIS' && order.status === 'completed')
   );
 
+  // Cek apakah notifikasi WhatsApp pesanan siap sudah dikirim
+  const isWaNotified = Boolean(
+    order.is_wa_notified ||
+    notes.includes('[WA_NOTIFIED]')
+  );
+
   // Catatan bersih tanpa tag kurung siku
   const displayNotes = notes
     .replace(/\[🛵 Diantar ke Kelas\]/g, '')
     .replace(/\[🚶 Ambil di Kasir\]/g, '')
     .replace(/\[WA:\s*[^\]]+\]/g, '')
     .replace(/\[QRIS_LUNAS\]/g, '')
+    .replace(/\[WA_NOTIFIED\]/g, '')
     .trim();
 
   return {
@@ -165,7 +172,8 @@ const parseOrder = (order) => {
     customer_phone: phone,
     delivery_type: deliveryType,
     display_notes: displayNotes,
-    is_qris_validated: isQrisValidated
+    is_qris_validated: isQrisValidated,
+    is_wa_notified: isWaNotified
   };
 };
 
@@ -348,6 +356,24 @@ export const toggleQrisValidation = async (orderId, isValidated) => {
     notes: currentNotes,
     qris_validated: isValidated,
     payment_status: isValidated ? 'paid' : 'pending'
+  };
+
+  return await updateOrderStatus(orderId, target.status, extraData);
+};
+
+export const markOrderWaNotified = async (orderId) => {
+  const allOrders = await fetchOrders();
+  const target = allOrders.find(o => o.id === orderId);
+  if (!target) return;
+
+  let currentNotes = target.notes || '';
+  if (!currentNotes.includes('[WA_NOTIFIED]')) {
+    currentNotes = `${currentNotes} [WA_NOTIFIED]`.trim();
+  }
+
+  const extraData = {
+    notes: currentNotes,
+    is_wa_notified: true
   };
 
   return await updateOrderStatus(orderId, target.status, extraData);

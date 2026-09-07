@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { 
   CheckCircle2, Utensils, Package, QrCode, 
   AlertCircle, Sparkles, Calculator,
-  MessageCircle, Ban, Trash2
+  MessageCircle, Ban, Trash2, Bot, RefreshCw
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
+import { sendPickupNotification, getFonnteToken } from '../lib/whatsapp';
+import { markOrderWaNotified } from '../lib/storage';
+import WaBotModal from './WaBotModal';
 
 export default function CashierDashboard({
   orders,
@@ -24,6 +27,9 @@ export default function CashierDashboard({
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [toastMsg, setToastMsg] = useState(null);
+  const [isWaModalOpen, setIsWaModalOpen] = useState(false);
+  const [sendingWaId, setSendingWaId] = useState(null);
+  const [hasFonnteToken, setHasFonnteToken] = useState(() => Boolean(getFonnteToken()));
 
   // Filter orders
   const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'cooking');
@@ -60,6 +66,32 @@ export default function CashierDashboard({
   const handleStartCooking = async (orderId) => {
     sound.playClick();
     await onUpdateStatus(orderId, 'cooking');
+  };
+
+  // Notifikasi WhatsApp: Pesanan Siap Diambil
+  const handleSendPickupWa = async (order) => {
+    sound.playClick();
+    setSendingWaId(order.id);
+    try {
+      const result = await sendPickupNotification(order);
+      if (result.success) {
+        sound.playComplete();
+        await markOrderWaNotified(order.id);
+        // Refresh local orders via status update broadcast
+        await onUpdateStatus(order.id, order.status);
+        setToastMsg(`Panggilan WhatsApp berhasil: ${order.customer_name} (${order.order_number}) 📢`);
+      } else {
+        sound.playRemove();
+        setToastMsg(`Gagal kirim WA: ${result.reason || 'Cek nomor pembeli'}`);
+      }
+    } catch (err) {
+      console.error('Gagal kirim notifikasi WA:', err);
+      sound.playRemove();
+      setToastMsg('Gagal mengirim panggilan WhatsApp.');
+    } finally {
+      setSendingWaId(null);
+      setTimeout(() => setToastMsg(null), 5000);
+    }
   };
 
   // Batalkan Pesanan & Restorasi Stok Otomatis
@@ -159,6 +191,18 @@ export default function CashierDashboard({
           >
             <QrCode className="w-4 h-4 text-espresso" />
             <span>QR Stand</span>
+          </button>
+
+          <button
+            onClick={() => {
+              sound.playClick();
+              setIsWaModalOpen(true);
+            }}
+            className="px-3 py-2 text-xs flex items-center gap-1.5 font-black bg-emerald-600 hover:bg-emerald-500 text-white border-2 border-espresso rounded-xl shadow-tactile-sm active:translate-y-0.5 transition-all"
+            title="Pengaturan Bot WhatsApp Notifikasi Pesanan Siap"
+          >
+            <Bot className="w-4 h-4 text-white" />
+            <span>Bot WA {hasFonnteToken ? '✓' : '⚙️'}</span>
           </button>
         </div>
       </div>
@@ -536,6 +580,46 @@ export default function CashierDashboard({
                 <div className="mt-4 pt-3 border-t-2 border-espresso">
                   {!isCompleted && !isCancelled ? (
                     <div className="space-y-2">
+                      {/* Opsi Panggilan WhatsApp: Pesanan Siap Diambil (Opsional) */}
+                      {order.customer_phone && (
+                        <div>
+                          {order.is_wa_notified ? (
+                            <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-500 flex items-center justify-between shadow-tactile-sm">
+                              <span className="text-[11px] font-black text-emerald-900 flex items-center gap-1.5">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                <span>Sudah Dipanggil via WA ✓</span>
+                              </span>
+                              <button
+                                type="button"
+                                disabled={sendingWaId === order.id}
+                                onClick={() => handleSendPickupWa(order)}
+                                className="text-[10px] font-black text-emerald-700 hover:text-emerald-950 underline flex items-center gap-1 disabled:opacity-50"
+                                title="Kirim ulang chat panggil jika pembeli belum datang ke meja stand"
+                              >
+                                <RefreshCw className={`w-3 h-3 ${sendingWaId === order.id ? 'animate-spin' : ''}`} />
+                                <span>Panggil Lagi</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={sendingWaId === order.id}
+                              onClick={() => handleSendPickupWa(order)}
+                              className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:translate-y-0.5 text-white font-black text-xs flex items-center justify-center gap-2 border-2 border-espresso shadow-tactile transition-all disabled:opacity-50"
+                              title="Kirim pesan WhatsApp: pesanan sudah siap diambil!"
+                            >
+                              {sendingWaId === order.id ? (
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                              ) : (
+                                <MessageCircle className="w-3.5 h-3.5 text-white" />
+                              )}
+                              <span>📢 Pesanan Siap Diambil (Chat WA)</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Tombol Utama Racik & Selesai Dilayani */}
                       <div className="flex items-center gap-2">
                         {isPending && (
                           <button
@@ -548,7 +632,7 @@ export default function CashierDashboard({
                           </button>
                         )}
 
-                        {/* Tombol Centang Selesai Dilayani */}
+                        {/* Tombol Centang Selesai Dilayani (Bebas diklik langsung tanpa wajib kirim WA!) */}
                         <button
                           onClick={() => handleCompleteOrder(order)}
                           className="btn-tactile-success flex-1 py-2.5 text-xs flex items-center justify-center gap-1.5 font-black text-white shadow-tactile"
@@ -671,6 +755,13 @@ export default function CashierDashboard({
           })}
         </div>
       )}
+
+      {/* Modal Pengaturan Bot WhatsApp */}
+      <WaBotModal
+        isOpen={isWaModalOpen}
+        onClose={() => setIsWaModalOpen(false)}
+        onTokenUpdated={() => setHasFonnteToken(Boolean(getFonnteToken()))}
+      />
 
     </div>
   );
