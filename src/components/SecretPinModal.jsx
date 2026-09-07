@@ -35,8 +35,9 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
   };
 
   const verifyPin = (candidate) => {
-    // PIN default kasir: 1234
-    if (candidate === '1234') {
+    // PIN kasir: dapat dikustomisasi lewat VITE_CASHIER_PIN di Vercel, default: 1234
+    const validPin = import.meta.env.VITE_CASHIER_PIN || '1234';
+    if (candidate === validPin) {
       sound.playComplete();
       setPin('');
       setError(false);

@@ -171,6 +171,26 @@ Agar pembeli bisa memesan dari HP mereka sendiri dan pesanannya langsung masuk k
 
 ---
 
+## 🔒 Praktik & Protokol Keamanan (Zero Data Leak)
+
+Proyek ini telah diaudit keamanannya dengan standar ketat:
+1. **Pencegahan Kebocoran File `.env`**:
+   * File `.gitignore` telah dikonfigurasi untuk mengecualikan `.env`, `.env.*`, dan `*.local`.
+   * Hanya file referensi aman `.env.example` yang diikutsertakan ke repositori Git.
+2. **Prinsip Hak Akses Supabase (Anon Key vs Service Role)**:
+   * Aplikasi frontend hanya boleh menggunakan `anon public key` yang dibatasi oleh Row Level Security (RLS).
+   * **DILARANG KERAS** memasukkan `service_role secret key` ke dalam aplikasi web frontend atau repositori GitHub.
+3. **Kustomisasi PIN Kasir**:
+   * PIN default kasir adalah `1234`.
+   * Kamu dapat mengganti PIN kasir secara aman melalui environment variable di Vercel atau `.env` lokal:
+     ```env
+     VITE_CASHIER_PIN=9876
+     ```
+4. **Proteksi Kata Sandi Database**:
+   * Sandi database Supabase tidak pernah ditulis atau disimpan di berkas kode proyek mana pun.
+
+---
+
 ## 🌐 Panduan Deploy ke Vercel (1 Menit)
 
 1. Push folder proyek ini ke repositori GitHub kamu ([channdraa-afk](https://github.com/channdraa-afk)):

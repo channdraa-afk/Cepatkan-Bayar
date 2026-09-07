@@ -111,6 +111,9 @@ export default function SupabaseConfigModal({ isOpen, onClose, onConfigSaved }) 
               onChange={(e) => setKey(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border-2 border-espresso bg-white font-mono text-xs text-espresso focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm"
             />
+            <p className="text-[10px] text-rose-800 font-bold mt-1 bg-rose-100 p-1.5 rounded border border-rose-300">
+              🛡️ <strong>Keamanan:</strong> Pastikan hanya memasukkan <code>anon public key</code>. DILARANG memasukkan <code>service_role secret key</code> ke aplikasi browser!
+            </p>
           </div>
 
           <div className="p-2.5 bg-cream-100 rounded-xl border border-espresso/20 text-[11px] text-espresso/70 leading-relaxed font-bold">
