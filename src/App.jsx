@@ -20,7 +20,8 @@ import { formatRupiah } from './components/MenuCard';
 import { sound } from './lib/audio';
 import { 
   Utensils, Coffee, Sparkles, AlertCircle, ShoppingBag, 
-  Search, ShieldCheck, Plus, PackageOpen, ChevronRight
+  Search, ShieldCheck, Plus, PackageOpen, ChevronRight,
+  Trash2, ClipboardList
 } from 'lucide-react';
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
   // Modals & Views
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCashier, setIsCashier] = useState(false);
+  const [cashierView, setCashierView] = useState('dashboard'); // 'dashboard' | 'catalog'
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [isMenuManagerOpen, setIsMenuManagerOpen] = useState(false);
@@ -53,14 +55,12 @@ export default function App() {
 
     // Subscribe to realtime updates
     const unsubscribe = subscribeToData(
-      // On Order Change
       (payload) => {
         loadData();
         if (isCashier) {
           sound.playCashRegister();
         }
       },
-      // On Menu / Stock Change
       (payload) => {
         loadData();
       }
@@ -188,24 +188,31 @@ export default function App() {
 
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
   const cartTotalPrice = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const pendingOrdersCount = orders.filter(o => o.status === 'pending' || o.status === 'cooking').length;
 
   return (
     <div className="min-h-screen flex flex-col bg-cream font-nunito text-espresso selection:bg-caramel selection:text-white">
       
-      {/* Header with Secret Cashier Door */}
+      {/* Header with Secret Cashier Door & View Toggle */}
       <Header
         cartCount={cartCount}
         onOpenCart={() => setIsCartOpen(true)}
         isCashier={isCashier}
         onOpenCashierPin={() => setIsPinModalOpen(true)}
-        onExitCashier={() => setIsCashier(false)}
-        onOpenCashierSettings={() => setIsSettingsModalOpen(true)}
+        cashierView={cashierView}
+        onToggleCashierView={() => setCashierView(prev => prev === 'dashboard' ? 'catalog' : 'dashboard')}
+        onLogoutCashier={() => {
+          setIsCashier(false);
+          setCashierView('dashboard');
+        }}
+        onOpenMenuManager={() => setIsMenuManagerOpen(true)}
+        pendingOrdersCount={pendingOrdersCount}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 pb-24">
-        {isCashier ? (
-          /* ================= MODE KASIR (ADMIN) ================= */
+        {isCashier && cashierView === 'dashboard' ? (
+          /* ================= MODE KASIR (DASHBOARD ANTREAN) ================= */
           <CashierDashboard
             orders={orders}
             menus={menus}
@@ -214,12 +221,50 @@ export default function App() {
             onOpenMenuManager={() => setIsMenuManagerOpen(true)}
             onOpenQrModal={() => setIsQrModalOpen(true)}
             onOpenSettings={() => setIsSettingsModalOpen(true)}
-            onExitCashier={() => setIsCashier(false)}
+            onExitCashier={() => setCashierView('catalog')}
           />
         ) : (
-          /* ================= MODE PEMBELI (PUBLIC) ================= */
+          /* ================= KATALOG MENU (PEMBELI & KASIR IN-CATALOG) ================= */
           <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-5">
             
+            {/* Banner Khusus jika Kasir sedang di Mode Katalog */}
+            {isCashier && (
+              <div className="p-3.5 bg-sage-100 border-2 border-espresso rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-tactile-sm">
+                <div className="flex items-center gap-2.5 text-espresso">
+                  <div className="w-8 h-8 rounded-xl bg-sage border border-espresso flex items-center justify-center">
+                    <ShieldCheck className="w-4 h-4 text-espresso" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-xs sm:text-sm">Mode Kasir Aktif di Katalog Menu</h4>
+                    <p className="text-[11px] font-bold text-espresso/70">
+                      Kamu bisa langsung klik tombol <span className="text-rose-700 font-black">[🗑️ Hapus]</span> di kartu menu untuk menghapusnya.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      setIsMenuManagerOpen(true);
+                    }}
+                    className="btn-tactile-primary px-3 py-1.5 text-xs font-black flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> + Tambah Menu Baru
+                  </button>
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      setCashierView('dashboard');
+                    }}
+                    className="btn-tactile-sage px-3 py-1.5 text-xs font-black flex items-center gap-1"
+                  >
+                    <ClipboardList className="w-3.5 h-3.5" /> Antrean ({pendingOrdersCount})
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Banner Stand Bazar */}
             <div className="card-tactile bg-cream-100 p-4 sm:p-6 text-center relative overflow-hidden">
               <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-sage/20 pointer-events-none" />
@@ -290,9 +335,21 @@ export default function App() {
                 <h3 className="text-lg font-black text-espresso mb-1">
                   Stand Sedang Menyiapkan Menu
                 </h3>
-                <p className="text-xs text-espresso/70 font-bold max-w-sm mx-auto leading-relaxed">
+                <p className="text-xs text-espresso/70 font-bold max-w-sm mx-auto leading-relaxed mb-4">
                   Daftar menu lezat sedang diracik oleh kasir. Silakan tunggu sebentar atau buka kembali dalam beberapa saat ya! ✨
                 </p>
+                {isCashier && (
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      setIsMenuManagerOpen(true);
+                    }}
+                    className="btn-tactile-primary px-4 py-2.5 text-xs inline-flex items-center gap-1.5"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ Tambah Menu Pertama Sekarang</span>
+                  </button>
+                )}
               </div>
             ) : filteredMenus.length === 0 ? (
               <div className="text-center py-12 px-4 card-tactile bg-cream-50">
@@ -310,6 +367,9 @@ export default function App() {
                       cartQty={cartItem ? cartItem.qty : 0}
                       onAddToCart={handleAddToCart}
                       onRemoveFromCart={handleRemoveFromCart}
+                      isCashier={isCashier}
+                      onEditMenu={() => setIsMenuManagerOpen(true)}
+                      onDeleteMenu={handleDeleteMenu}
                     />
                   );
                 })}
@@ -380,6 +440,7 @@ export default function App() {
         onSuccess={() => {
           setIsPinModalOpen(false);
           setIsCashier(true);
+          setCashierView('dashboard');
         }}
       />
 

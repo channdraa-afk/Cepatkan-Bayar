@@ -1,5 +1,5 @@
-import React from 'react';
-import { Plus, Minus, AlertCircle, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Minus, AlertCircle, CheckCircle2, Trash2, Edit2 } from 'lucide-react';
 import { sound } from '../lib/audio';
 
 export const formatRupiah = (number) => {
@@ -11,7 +11,16 @@ export const formatRupiah = (number) => {
   }).format(number);
 };
 
-export default function MenuCard({ item, cartQty, onAddToCart, onRemoveFromCart }) {
+export default function MenuCard({ 
+  item, 
+  cartQty, 
+  onAddToCart, 
+  onRemoveFromCart, 
+  isCashier, 
+  onEditMenu, 
+  onDeleteMenu 
+}) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const isOutOfStock = item.stock <= 0;
   const isLowStock = item.stock > 0 && item.stock <= 5;
   const canAddMore = !isOutOfStock && cartQty < item.stock;
@@ -27,10 +36,57 @@ export default function MenuCard({ item, cartQty, onAddToCart, onRemoveFromCart 
     onRemoveFromCart(item);
   };
 
+  const handleDelete = () => {
+    sound.playRemove();
+    onDeleteMenu(item.id);
+    setConfirmDelete(false);
+  };
+
   return (
-    <div className={`card-tactile overflow-hidden flex flex-col justify-between transition-all duration-200 ${
-      isOutOfStock ? 'opacity-75 bg-cream-200/50' : 'hover:-translate-y-1'
+    <div className={`card-tactile overflow-hidden flex flex-col justify-between transition-all duration-200 relative ${
+      isOutOfStock ? 'opacity-85 bg-cream-200/50' : 'hover:-translate-y-1'
     }`}>
+      
+      {/* Tombol Hapus & Edit Langsung Khusus Kasir di Pojok Kartu */}
+      {isCashier && (
+        <div className="absolute top-2 right-2 z-20 flex items-center gap-1 bg-cream-100/95 backdrop-blur-sm p-1 rounded-xl border border-espresso shadow-tactile-sm">
+          {onEditMenu && (
+            <button
+              onClick={() => onEditMenu(item)}
+              className="p-1 rounded-lg bg-cream hover:bg-cream-200 text-espresso text-xs font-black border border-espresso/40"
+              title="Edit Menu Ini"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {confirmDelete ? (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleDelete}
+                className="px-1.5 py-0.5 rounded bg-rose-700 text-cream text-[10px] font-black border border-espresso"
+              >
+                Hapus!
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="px-1 py-0.5 rounded bg-cream text-espresso text-[10px] font-bold border border-espresso"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="p-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-black border border-rose-400"
+              title="Hapus Menu Ini"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
       <div>
         {/* Gambar Menu */}
         <div className="relative h-44 w-full bg-cream-200 border-b-2 border-espresso overflow-hidden group">
@@ -44,7 +100,7 @@ export default function MenuCard({ item, cartQty, onAddToCart, onRemoveFromCart 
           />
 
           {/* Badge Kategori & Sorotan */}
-          <div className="absolute top-2 left-2 flex flex-wrap gap-1.5 z-10">
+          <div className="absolute top-2 left-2 flex flex-wrap gap-1.5 z-10 max-w-[60%]">
             {item.badge && (
               <span className="px-2.5 py-1 text-xs font-black rounded-lg bg-cream border border-espresso text-espresso shadow-tactile-sm">
                 {item.badge}
