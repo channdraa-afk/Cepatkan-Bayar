@@ -1,0 +1,18 @@
+{
+  "name": "CepatkanBayar — Kasir & Pesan Stand Bazar",
+  "short_name": "CepatkanBayar",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F1DE",
+  "theme_color": "#F7F1DE",
+  "orientation": "portrait",
+  "description": "Sistem kasir kilat dan pemesanan mandiri untuk stand bazar.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

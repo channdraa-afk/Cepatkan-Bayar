@@ -6,24 +6,36 @@
   /* 3D Tactile Pushable Buttons */
   .btn-tactile-primary {
     @apply bg-caramel text-cream font-bold border-2 border-espresso rounded-xl shadow-tactile transition-all duration-100 active:translate-y-1 active:shadow-tactile-pressed hover:brightness-105 select-none disabled:opacity-50 disabled:pointer-events-none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   
   .btn-tactile-sage {
     @apply bg-sage text-espresso font-bold border-2 border-espresso rounded-xl shadow-tactile transition-all duration-100 active:translate-y-1 active:shadow-tactile-pressed hover:brightness-105 select-none disabled:opacity-50 disabled:pointer-events-none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .btn-tactile-cream {
     @apply bg-cream-50 text-espresso font-bold border-2 border-espresso rounded-xl shadow-tactile transition-all duration-100 active:translate-y-1 active:shadow-tactile-pressed hover:bg-white select-none disabled:opacity-50 disabled:pointer-events-none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .btn-tactile-danger {
     @apply bg-rose-700 text-cream font-bold border-2 border-espresso rounded-xl shadow-tactile transition-all duration-100 active:translate-y-1 active:shadow-tactile-pressed hover:brightness-110 select-none disabled:opacity-50 disabled:pointer-events-none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Tactile Card */
   .card-tactile {
     @apply bg-cream-100 border-2 border-espresso rounded-2xl shadow-tactile transition-all;
   }
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Custom retro scrollbar */

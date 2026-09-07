@@ -7,34 +7,38 @@ import OrderTrackerModal from './components/OrderTrackerModal';
 import SecretPinModal from './components/SecretPinModal';
 import CashierDashboard from './components/CashierDashboard';
 import StockManagerModal from './components/StockManagerModal';
+import MenuManagerModal from './components/MenuManagerModal';
 import QrCodeModal from './components/QrCodeModal';
 import SupabaseConfigModal from './components/SupabaseConfigModal';
 
 import { 
   fetchMenus, fetchOrders, createOrder, updateMenuStock, 
-  quickAddStock, updateOrderStatus, subscribeToData 
+  quickAddStock, updateOrderStatus, subscribeToData,
+  createMenu, updateMenu, deleteMenu, clearAllMenus
 } from './lib/storage';
-import { CATEGORIES } from './data/initialMenu';
+import { formatRupiah } from './components/MenuCard';
 import { sound } from './lib/audio';
-import { Utensils, Coffee, Sparkles, AlertCircle, ShoppingBag, ShieldCheck } from 'lucide-react';
+import { 
+  Utensils, Coffee, Sparkles, AlertCircle, ShoppingBag, 
+  Search, ShieldCheck, Plus, PackageOpen, ChevronRight
+} from 'lucide-react';
 
 export default function App() {
   const [menus, setMenus] = useState([]);
   const [orders, setOrders] = useState([]);
   const [cart, setCart] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('Semua');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Modals & Views
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCashier, setIsCashier] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [isMenuManagerOpen, setIsMenuManagerOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [activeCustomerOrder, setActiveCustomerOrder] = useState(null);
-
-  // Audio enable flag on first user interaction
-  const hasInteractedRef = useRef(false);
 
   // Load Initial Data
   const loadData = async () => {
@@ -52,7 +56,6 @@ export default function App() {
       // On Order Change
       (payload) => {
         loadData();
-        // If cashier is active, alert with bell kaching!
         if (isCashier) {
           sound.playCashRegister();
         }
@@ -133,6 +136,27 @@ export default function App() {
     } catch (e) {}
   };
 
+  // Cashier Menu CRUD
+  const handleCreateMenu = async (menuData) => {
+    await createMenu(menuData);
+    await loadData();
+  };
+
+  const handleUpdateMenu = async (id, updatedFields) => {
+    await updateMenu(id, updatedFields);
+    await loadData();
+  };
+
+  const handleDeleteMenu = async (id) => {
+    await deleteMenu(id);
+    await loadData();
+  };
+
+  const handleClearAllMenus = async () => {
+    await clearAllMenus();
+    await loadData();
+  };
+
   // Cashier Stock operations
   const handleUpdateStock = async (id, newStock) => {
     await updateMenuStock(id, newStock);
@@ -150,13 +174,20 @@ export default function App() {
     await loadData();
   };
 
+  // Dynamic categories
+  const categoriesList = ['Semua', ...Array.from(new Set(menus.map(m => m.category || 'Makanan')))];
+
   // Filtered menus for customer view
   const filteredMenus = menus.filter(m => {
-    if (selectedCategory === 'Semua') return true;
-    return m.category === selectedCategory;
+    const matchCategory = selectedCategory === 'Semua' || m.category === selectedCategory;
+    const matchSearch = searchQuery.trim() === '' || 
+      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (m.description && m.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchCategory && matchSearch;
   });
 
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
+  const cartTotalPrice = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
 
   return (
     <div className="min-h-screen flex flex-col bg-cream font-nunito text-espresso selection:bg-caramel selection:text-white">
@@ -172,7 +203,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 pb-16">
+      <main className="flex-1 pb-24">
         {isCashier ? (
           /* ================= MODE KASIR (ADMIN) ================= */
           <CashierDashboard
@@ -180,91 +211,132 @@ export default function App() {
             menus={menus}
             onUpdateStatus={handleUpdateOrderStatus}
             onOpenStockManager={() => setIsStockModalOpen(true)}
+            onOpenMenuManager={() => setIsMenuManagerOpen(true)}
             onOpenQrModal={() => setIsQrModalOpen(true)}
             onOpenSettings={() => setIsSettingsModalOpen(true)}
             onExitCashier={() => setIsCashier(false)}
           />
         ) : (
           /* ================= MODE PEMBELI (PUBLIC) ================= */
-          <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+          <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-5">
             
             {/* Banner Stand Bazar */}
-            <div className="card-tactile bg-cream-100 p-5 sm:p-6 text-center relative overflow-hidden">
+            <div className="card-tactile bg-cream-100 p-4 sm:p-6 text-center relative overflow-hidden">
               <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-sage/20 pointer-events-none" />
               <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-caramel/15 pointer-events-none" />
               
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sage text-espresso border border-espresso text-xs font-black mb-2 shadow-tactile-sm">
-                <Sparkles className="w-3.5 h-3.5" /> Selamat Datang di Stand Bazar
+                <Sparkles className="w-3.5 h-3.5" /> Stand Bazar Siap Melayani
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-espresso tracking-tight mb-2">
+              <h1 className="text-2xl sm:text-3xl font-black text-espresso tracking-tight mb-1.5">
                 Pesan Mandiri & Cepatkan Bayar
               </h1>
               <p className="text-xs sm:text-sm text-espresso/80 font-bold max-w-md mx-auto leading-relaxed">
-                Pilih menu favoritmu, cek ketersediaan stok secara *realtime*, dan ambil pesananmu saat nomor antrean dipanggil!
+                Pilih menu favoritmu, cek sisa stok *realtime*, dan ambil pesananmu saat nomor antrean dipanggil!
               </p>
             </div>
 
-            {/* Filter Kategori */}
-            <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1">
-              <div className="flex items-center gap-2">
-                {CATEGORIES.map((cat) => (
+            {/* Instant Search Bar & Filter Kategori */}
+            <div className="space-y-3">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-espresso/40" />
+                <input
+                  type="text"
+                  placeholder="Cari jajanan / minuman lezat..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border-2 border-espresso bg-cream-50 text-espresso font-bold text-xs sm:text-sm placeholder:text-espresso/40 shadow-tactile-sm focus:outline-none focus:ring-2 focus:ring-caramel"
+                />
+                {searchQuery && (
                   <button
-                    key={cat}
-                    onClick={() => {
-                      sound.playClick();
-                      setSelectedCategory(cat);
-                    }}
-                    className={`px-4 py-2 rounded-xl text-xs font-black border-2 border-espresso transition-all select-none ${
-                      selectedCategory === cat
-                        ? 'bg-caramel text-cream shadow-tactile'
-                        : 'bg-cream-50 text-espresso shadow-tactile-sm hover:bg-cream-100'
-                    }`}
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-espresso/50 hover:text-espresso"
                   >
-                    {cat}
+                    Hapus
                   </button>
-                ))}
+                )}
               </div>
 
-              <span className="text-xs font-bold text-espresso/60 shrink-0">
-                {filteredMenus.length} Menu
-              </span>
+              {/* Kategori Pills */}
+              {categoriesList.length > 1 && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                  {categoriesList.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        sound.playClick();
+                        setSelectedCategory(cat);
+                      }}
+                      className={`px-4 py-2 rounded-xl text-xs font-black border-2 border-espresso transition-all shrink-0 select-none ${
+                        selectedCategory === cat
+                          ? 'bg-caramel text-cream shadow-tactile'
+                          : 'bg-cream-50 text-espresso shadow-tactile-sm hover:bg-cream-100'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Grid Katalog Menu */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {filteredMenus.map((item) => {
-                const cartItem = cart.find(i => i.id === item.id);
-                return (
-                  <MenuCard
-                    key={item.id}
-                    item={item}
-                    cartQty={cartItem ? cartItem.qty : 0}
-                    onAddToCart={handleAddToCart}
-                    onRemoveFromCart={handleRemoveFromCart}
-                  />
-                );
-              })}
-            </div>
+            {/* Grid Katalog Menu atau Empty State */}
+            {menus.length === 0 ? (
+              <div className="text-center py-16 px-4 card-tactile bg-cream-50">
+                <div className="w-16 h-16 rounded-2xl bg-cream-200 border-2 border-espresso flex items-center justify-center mx-auto mb-3 shadow-tactile-sm">
+                  <Coffee className="w-8 h-8 text-caramel" />
+                </div>
+                <h3 className="text-lg font-black text-espresso mb-1">
+                  Stand Sedang Menyiapkan Menu
+                </h3>
+                <p className="text-xs text-espresso/70 font-bold max-w-sm mx-auto leading-relaxed">
+                  Daftar menu lezat sedang diracik oleh kasir. Silakan tunggu sebentar atau buka kembali dalam beberapa saat ya! ✨
+                </p>
+              </div>
+            ) : filteredMenus.length === 0 ? (
+              <div className="text-center py-12 px-4 card-tactile bg-cream-50">
+                <p className="text-sm font-black text-espresso mb-1">Tidak ada menu yang cocok</p>
+                <p className="text-xs text-espresso/60 font-bold">Coba kata kunci pencarian yang lain.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                {filteredMenus.map((item) => {
+                  const cartItem = cart.find(i => i.id === item.id);
+                  return (
+                    <MenuCard
+                      key={item.id}
+                      item={item}
+                      cartQty={cartItem ? cartItem.qty : 0}
+                      onAddToCart={handleAddToCart}
+                      onRemoveFromCart={handleRemoveFromCart}
+                    />
+                  );
+                })}
+              </div>
+            )}
 
-            {/* Floating Checkout Bar for Mobile (jika keranjang terisi) */}
+            {/* Sticky Mobile Bottom Bar (Ergonomic Thumb-Zone) */}
             {cartCount > 0 && (
-              <div className="fixed bottom-4 left-4 right-4 max-w-md mx-auto z-20 animate-in slide-in-from-bottom-4">
+              <div className="fixed bottom-3 left-3 right-3 max-w-lg mx-auto z-40 animate-in slide-in-from-bottom-5 duration-200">
                 <button
                   onClick={() => {
                     sound.playClick();
                     setIsCartOpen(true);
                   }}
-                  className="btn-tactile-primary w-full py-3.5 px-5 flex items-center justify-between text-sm shadow-tactile-lg"
+                  className="btn-tactile-primary w-full py-3.5 px-4 flex items-center justify-between text-sm shadow-tactile-lg rounded-2xl"
                 >
                   <div className="flex items-center gap-2 font-black">
                     <span className="w-6 h-6 rounded-full bg-cream text-espresso text-xs flex items-center justify-center border border-espresso">
                       {cartCount}
                     </span>
-                    <span>Lihat Pesanan</span>
+                    <span>Lihat Keranjang</span>
                   </div>
-                  <div className="flex items-center gap-1 text-xs font-black">
-                    <span>Lanjut ke Kasir</span>
-                    <span>➔</span>
+                  <div className="flex items-center gap-2 font-black text-xs sm:text-sm">
+                    <span>{formatRupiah(cartTotalPrice)}</span>
+                    <span className="bg-cream/20 px-2 py-0.5 rounded-lg border border-cream/30 flex items-center gap-1">
+                      Pesan <ChevronRight className="w-3.5 h-3.5" />
+                    </span>
                   </div>
                 </button>
               </div>
@@ -309,6 +381,16 @@ export default function App() {
           setIsPinModalOpen(false);
           setIsCashier(true);
         }}
+      />
+
+      <MenuManagerModal
+        isOpen={isMenuManagerOpen}
+        onClose={() => setIsMenuManagerOpen(false)}
+        menus={menus}
+        onCreateMenu={handleCreateMenu}
+        onUpdateMenu={handleUpdateMenu}
+        onDeleteMenu={handleDeleteMenu}
+        onClearAllMenus={handleClearAllMenus}
       />
 
       <StockManagerModal

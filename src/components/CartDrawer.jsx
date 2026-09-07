@@ -69,21 +69,26 @@ export default function CartDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+    <div className="fixed inset-0 z-50 overflow-hidden flex flex-col justify-end sm:flex-row sm:justify-end">
       {/* Backdrop */}
       <div 
         onClick={onClose}
         className="fixed inset-0 bg-espresso/50 backdrop-blur-sm transition-opacity"
       />
 
-      {/* Drawer Body */}
-      <div className="relative z-10 w-full max-w-md bg-cream border-l-2 border-espresso h-full shadow-2xl flex flex-col justify-between overflow-hidden">
+      {/* Drawer / Mobile Bottom Sheet Body */}
+      <div className="relative z-10 w-full sm:max-w-md bg-cream border-t-2 sm:border-t-0 sm:border-l-2 border-espresso rounded-t-3xl sm:rounded-none max-h-[90vh] sm:max-h-full sm:h-full shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-bottom sm:slide-in-from-right duration-200">
         
+        {/* Mobile handle indicator */}
+        <div className="sm:hidden pt-2 pb-1 flex justify-center">
+          <div className="w-12 h-1.5 rounded-full bg-espresso/25" />
+        </div>
+
         {/* Header */}
-        <div className="p-4 border-b-2 border-espresso bg-cream-100 flex items-center justify-between">
+        <div className="px-4 py-3 border-b-2 border-espresso bg-cream-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-caramel" />
-            <h2 className="text-lg font-black text-espresso">Keranjang Pesanan</h2>
+            <h2 className="text-base sm:text-lg font-black text-espresso">Keranjang Pesanan</h2>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-caramel/20 text-espresso border border-espresso">
               {cartItems.length} menu
             </span>
@@ -107,7 +112,7 @@ export default function CartDrawer({
                 <ShoppingBag className="w-8 h-8 text-espresso/40" />
               </div>
               <p className="font-extrabold text-espresso text-base mb-1">Keranjang masih kosong</p>
-              <p className="text-xs text-espresso/60">Yuk pilih menu lezat bazar di katalog!</p>
+              <p className="text-xs text-espresso/60 font-bold">Yuk pilih menu lezat bazar di katalog!</p>
             </div>
           ) : (
             <>
@@ -132,11 +137,11 @@ export default function CartDrawer({
                           sound.playRemove();
                           onUpdateQty(item.id, item.qty - 1);
                         }}
-                        className="w-6 h-6 rounded bg-cream-100 flex items-center justify-center text-espresso hover:bg-cream-200 active:translate-y-0.5"
+                        className="w-7 h-7 rounded bg-cream-100 flex items-center justify-center text-espresso hover:bg-cream-200 active:translate-y-0.5"
                       >
-                        <Minus className="w-3 h-3" />
+                        <Minus className="w-3.5 h-3.5" />
                       </button>
-                      <span className="w-5 text-center text-xs font-black text-espresso">
+                      <span className="w-6 text-center text-xs font-black text-espresso">
                         {item.qty}
                       </span>
                       <button
@@ -146,9 +151,9 @@ export default function CartDrawer({
                           sound.playAdd();
                           onUpdateQty(item.id, item.qty + 1);
                         }}
-                        className="w-6 h-6 rounded bg-caramel text-cream flex items-center justify-center hover:brightness-105 active:translate-y-0.5"
+                        className="w-7 h-7 rounded bg-caramel text-cream flex items-center justify-center hover:brightness-105 active:translate-y-0.5"
                       >
-                        <Plus className="w-3 h-3 text-cream" />
+                        <Plus className="w-3.5 h-3.5 text-cream" />
                       </button>
                     </div>
                   </div>
@@ -180,7 +185,7 @@ export default function CartDrawer({
                     placeholder="Misal: Meja 4 / Tanpa es / Jangan terlalu pedas"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border-2 border-espresso bg-cream-50 text-espresso font-bold text-sm focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm placeholder:text-espresso/40"
+                    className="w-full px-3.5 py-2.5 rounded-xl border-2 border-espresso bg-cream-50 text-espresso font-bold text-sm focus:outline-none focus:ring-2 focus:ring-caramel shadow-tactile-sm placeholder:text-espresso/40"
                   />
                 </div>
 
@@ -196,7 +201,7 @@ export default function CartDrawer({
                         sound.playClick();
                         setPaymentMethod('Tunai');
                       }}
-                      className={`p-2.5 rounded-xl border-2 border-espresso font-black text-xs flex items-center justify-center gap-2 transition-all ${
+                      className={`p-3 rounded-xl border-2 border-espresso font-black text-xs flex items-center justify-center gap-2 transition-all ${
                         paymentMethod === 'Tunai'
                           ? 'bg-caramel text-cream shadow-tactile'
                           : 'bg-cream-50 text-espresso shadow-tactile-sm hover:bg-cream-100'
@@ -210,7 +215,7 @@ export default function CartDrawer({
                         sound.playClick();
                         setPaymentMethod('QRIS');
                       }}
-                      className={`p-2.5 rounded-xl border-2 border-espresso font-black text-xs flex items-center justify-center gap-2 transition-all ${
+                      className={`p-3 rounded-xl border-2 border-espresso font-black text-xs flex items-center justify-center gap-2 transition-all ${
                         paymentMethod === 'QRIS'
                           ? 'bg-caramel text-cream shadow-tactile'
                           : 'bg-cream-50 text-espresso shadow-tactile-sm hover:bg-cream-100'
@@ -234,7 +239,7 @@ export default function CartDrawer({
 
         {/* Footer Checkout */}
         {cartItems.length > 0 && (
-          <div className="p-4 border-t-2 border-espresso bg-cream-100 space-y-3">
+          <div className="p-4 border-t-2 border-espresso bg-cream-100 space-y-3 pb-6 sm:pb-4">
             <div className="flex items-center justify-between">
               <span className="text-xs uppercase font-extrabold text-espresso/70">Total Bayar:</span>
               <span className="text-xl font-black text-caramel">
@@ -246,7 +251,7 @@ export default function CartDrawer({
               type="submit"
               form="orderForm"
               disabled={isSubmitting}
-              className="btn-tactile-primary w-full py-3 text-sm flex items-center justify-center gap-2"
+              className="btn-tactile-primary w-full py-3.5 text-sm flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <span>Memproses Pesanan...</span>

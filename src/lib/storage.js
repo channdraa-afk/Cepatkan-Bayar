@@ -9,7 +9,7 @@ const channel = typeof window !== 'undefined' && window.BroadcastChannel
   ? new BroadcastChannel('cepatkanbayar_sync') 
   : null;
 
-// ==================== MENUS ====================
+// ==================== MENUS CRUD ====================
 export const getLocalMenus = () => {
   try {
     const data = localStorage.getItem(LOCAL_STORAGE_MENUS_KEY);
@@ -27,8 +27,8 @@ export const fetchMenus = async () => {
   const supabase = getSupabase();
   if (supabase) {
     try {
-      const { data, error } = await supabase.from('menus').select('*').order('id');
-      if (!error && data && data.length > 0) {
+      const { data, error } = await supabase.from('menus').select('*').order('created_at', { ascending: true });
+      if (!error && data) {
         return data;
       }
     } catch (err) {
@@ -38,28 +38,93 @@ export const fetchMenus = async () => {
   return getLocalMenus();
 };
 
-export const updateMenuStock = async (id, newStock) => {
-  const finalStock = Math.max(0, parseInt(newStock) || 0);
+export const createMenu = async (menuData) => {
+  const id = `m_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const newMenu = {
+    id,
+    name: menuData.name.trim(),
+    category: menuData.category || 'Makanan',
+    price: parseInt(menuData.price) || 0,
+    stock: parseInt(menuData.stock) || 0,
+    description: (menuData.description || '').trim(),
+    image: menuData.image || 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=400&q=80',
+    badge: menuData.badge || '',
+    created_at: new Date().toISOString()
+  };
+
   const supabase = getSupabase();
   if (supabase) {
     try {
-      await supabase.from('menus').update({ stock: finalStock }).eq('id', id);
+      await supabase.from('menus').insert([newMenu]);
     } catch (err) {
-      console.warn('Gagal update stock Supabase:', err);
+      console.warn('Gagal create menu Supabase:', err);
     }
   }
 
-  // Simpan juga ke local
   const local = getLocalMenus();
-  const updated = local.map(m => m.id === id ? { ...m, stock: finalStock } : m);
+  const updated = [...local, newMenu];
   localStorage.setItem(LOCAL_STORAGE_MENUS_KEY, JSON.stringify(updated));
-  if (channel) channel.postMessage({ type: 'MENU_UPDATE', id, stock: finalStock });
+  if (channel) channel.postMessage({ type: 'MENU_UPDATE' });
+  return newMenu;
+};
+
+export const updateMenu = async (id, updatedFields) => {
+  const supabase = getSupabase();
+  if (supabase) {
+    try {
+      await supabase.from('menus').update(updatedFields).eq('id', id);
+    } catch (err) {
+      console.warn('Gagal update menu Supabase:', err);
+    }
+  }
+
+  const local = getLocalMenus();
+  const updated = local.map(m => m.id === id ? { ...m, ...updatedFields } : m);
+  localStorage.setItem(LOCAL_STORAGE_MENUS_KEY, JSON.stringify(updated));
+  if (channel) channel.postMessage({ type: 'MENU_UPDATE' });
   return updated;
 };
 
-export const quickAddStock = async (id, amount) => {
+export const deleteMenu = async (id) => {
+  const supabase = getSupabase();
+  if (supabase) {
+    try {
+      await supabase.from('menus').delete().eq('id', id);
+    } catch (err) {
+      console.warn('Gagal delete menu Supabase:', err);
+    }
+  }
+
   const local = getLocalMenus();
-  const item = local.find(m => m.id === id);
+  const updated = local.filter(m => m.id !== id);
+  localStorage.setItem(LOCAL_STORAGE_MENUS_KEY, JSON.stringify(updated));
+  if (channel) channel.postMessage({ type: 'MENU_UPDATE' });
+  return updated;
+};
+
+export const clearAllMenus = async () => {
+  const supabase = getSupabase();
+  if (supabase) {
+    try {
+      await supabase.from('menus').delete().neq('id', 'placeholder');
+    } catch (err) {
+      console.warn('Gagal clear menus Supabase:', err);
+    }
+  }
+
+  localStorage.setItem(LOCAL_STORAGE_MENUS_KEY, JSON.stringify([]));
+  if (channel) channel.postMessage({ type: 'MENU_UPDATE' });
+  return [];
+};
+
+export const updateMenuStock = async (id, newStock) => {
+  const finalStock = Math.max(0, parseInt(newStock) || 0);
+  return await updateMenu(id, { stock: finalStock });
+};
+
+export const quickAddStock = async (id, amount) => {
+  const menus = await fetchMenus();
+  const item = menus.find(m => m.id === id);
   const currentStock = item ? item.stock : 0;
   return await updateMenuStock(id, currentStock + amount);
 };
@@ -103,10 +168,10 @@ export const createOrder = async ({ customerName, notes, items, totalPrice, paym
     order_number: orderNumber,
     customer_name: customerName.trim(),
     notes: (notes || '').trim(),
-    items: items, // [{ id, name, price, qty }]
+    items: items,
     total_price: totalPrice,
     payment_method: paymentMethod || 'Tunai',
-    status: 'pending', // 'pending' | 'cooking' | 'completed' | 'cancelled'
+    status: 'pending',
     cash_given: null,
     change_amount: null,
     created_at: new Date().toISOString()
@@ -132,7 +197,6 @@ export const createOrder = async ({ customerName, notes, items, totalPrice, paym
     }
   }
 
-  // Simpan ke local storage
   const localOrders = getLocalOrders();
   const updatedOrders = [newOrder, ...localOrders];
   localStorage.setItem(LOCAL_STORAGE_ORDERS_KEY, JSON.stringify(updatedOrders));
@@ -157,7 +221,6 @@ export const updateOrderStatus = async (orderId, newStatus, extraData = {}) => {
     }
   }
 
-  // Update local
   const local = getLocalOrders();
   const updated = local.map(o => o.id === orderId ? { ...o, status: newStatus, ...extraData } : o);
   localStorage.setItem(LOCAL_STORAGE_ORDERS_KEY, JSON.stringify(updated));
@@ -198,7 +261,6 @@ export const subscribeToData = (onOrderChange, onMenuChange) => {
     }
   }
 
-  // Cross-tab broadcast channel listener for local testing
   const handleBroadcast = (event) => {
     const { data } = event;
     if (!data) return;
@@ -214,7 +276,6 @@ export const subscribeToData = (onOrderChange, onMenuChange) => {
     channel.addEventListener('message', handleBroadcast);
   }
 
-  // Return cleanup function
   return () => {
     if (supabaseSub && supabase) {
       supabase.removeChannel(supabaseSub);

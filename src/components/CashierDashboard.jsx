@@ -11,6 +11,7 @@ export default function CashierDashboard({
   menus,
   onUpdateStatus,
   onOpenStockManager,
+  onOpenMenuManager,
   onOpenQrModal,
   onOpenSettings,
   onExitCashier
@@ -61,7 +62,7 @@ export default function CashierDashboard({
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-5">
       
       {/* Top Bar Kasir */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-cream-100 border-2 border-espresso rounded-2xl p-4 shadow-tactile">
@@ -74,11 +75,23 @@ export default function CashierDashboard({
               Antrean Masuk: <strong className="text-caramel">{activeOrders.length}</strong> pesanan
             </span>
           </div>
-          <h1 className="text-2xl font-black text-espresso">Dashboard Kasir Bazar</h1>
+          <h1 className="text-xl sm:text-2xl font-black text-espresso">Dashboard Kasir Bazar</h1>
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              sound.playClick();
+              onOpenMenuManager();
+            }}
+            className="btn-tactile-primary px-3 py-2 text-xs flex items-center gap-1.5"
+            title="Kelola, Tambah, Edit, atau Hapus Menu Stand"
+          >
+            <Sparkles className="w-4 h-4 text-cream" />
+            <span>Kelola / + Menu</span>
+          </button>
+
           <button
             onClick={() => {
               sound.playClick();
@@ -119,13 +132,35 @@ export default function CashierDashboard({
               sound.playClick();
               onExitCashier();
             }}
-            className="btn-tactile-primary px-3 py-2 text-xs flex items-center gap-1.5"
+            className="btn-tactile-cream px-3 py-2 text-xs flex items-center gap-1.5"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Kembali</span>
+            <span>Menu Pembeli</span>
           </button>
         </div>
       </div>
+
+      {/* Banner jika menu masih kosong */}
+      {menus.length === 0 && (
+        <div className="p-4 bg-amber-100 border-2 border-amber-600 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-tactile-sm">
+          <div className="flex items-center gap-3 text-amber-900">
+            <AlertCircle className="w-6 h-6 shrink-0 text-amber-700" />
+            <div>
+              <h4 className="font-black text-sm">Menu Stand Masih Kosong!</h4>
+              <p className="text-xs font-bold text-amber-800">Yuk masukkan menu makanan/minuman yang akan kamu jual di bazar besok.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              sound.playClick();
+              onOpenMenuManager();
+            }}
+            className="btn-tactile-primary px-4 py-2 text-xs shrink-0"
+          >
+            + Tambah Menu Pertama
+          </button>
+        </div>
+      )}
 
       {/* Rekap Omzet Card */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
