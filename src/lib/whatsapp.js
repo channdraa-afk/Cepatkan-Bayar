@@ -28,7 +28,9 @@ export function normalizeWaNumber(phone) {
 }
 
 /**
- * Menghasilkan pesan notifikasi WhatsApp yang ramah, sopan, dan rapi
+ * Menghasilkan pesan notifikasi WhatsApp dengan 2 versi:
+ * 1. Versi Diantar ke Kelas (Delivery)
+ * 2. Versi Ambil di Kasir (Pickup)
  */
 export function createPickupMessage(order) {
   if (!order) return '';
@@ -46,10 +48,25 @@ export function createPickupMessage(order) {
   const isDelivery = order.delivery_type === 'delivery' || 
     (order.notes && order.notes.includes('🛵 Diantar'));
 
-  const instructions = isDelivery
-    ? '🛵 *Tim kami sedang dalam perjalanan mengantar pesanan ke kelasmu yaa.*'
-    : '🚶 *Yuk langsung menuju ke meja kasir stand untuk ambil pesananmu.*';
+  // VERSI 1: PESANAN DIANTAR KE KELAS (DELIVERY)
+  if (isDelivery) {
+    return [
+      `Halo kak *${customerName}*${customerClass}! 👋`,
+      `Pesananmu di *${STAND_NAME}* sudah selesai dan *SEDANG DIANTAR* nih! 🛵💨`,
+      '',
+      `📋 *Rincian Pesanan #${orderNumber}:*`,
+      itemsList,
+      '',
+      `💰 *Total:* ${totalPrice} (${paymentMethod})`,
+      `📍 *Tujuan Antar:* ${order.customer_class || 'Kelas/Ruangan Kamu'}`,
+      '',
+      '🛵 *Tim kurir stand kami sedang meluncur ke kelasmu, mohon ditunggu di kelas yaa kak.*',
+      '',
+      'Terima kasih banyak sudah jajan di stand kami! 🙏😊'
+    ].join('\n');
+  }
 
+  // VERSI 2: PESANAN DIAMBIL DI KASIR STAND (PICKUP)
   return [
     `Halo kak *${customerName}*${customerClass}! 👋`,
     `Pesananmu di *${STAND_NAME}* sudah *SIAP DIAMBIL* nih! 🥤✨`,
@@ -59,7 +76,7 @@ export function createPickupMessage(order) {
     '',
     `💰 *Total:* ${totalPrice} (${paymentMethod})`,
     '',
-    instructions,
+    '🚶 *Pesananmu sudah siap di meja stand, yuk langsung ke stand bazar untuk mengambilnya yaa.*',
     '',
     'Ditunggu kedatangannya yaa kak, terima kasih banyak! 🙏😊'
   ].join('\n');

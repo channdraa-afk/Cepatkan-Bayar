@@ -68,10 +68,12 @@ export default function CashierDashboard({
     await onUpdateStatus(orderId, 'cooking');
   };
 
-  // Notifikasi WhatsApp: Pesanan Siap Diambil
+  // Notifikasi WhatsApp: Pesanan Siap Diambil / Sedang Diantar
   const handleSendPickupWa = async (order) => {
     sound.playClick();
     setSendingWaId(order.id);
+    const isDelivery = order.delivery_type === 'delivery' || 
+      (order.notes && order.notes.includes('🛵 Diantar'));
     try {
       const result = await sendPickupNotification(order);
       if (result.success) {
@@ -79,7 +81,8 @@ export default function CashierDashboard({
         await markOrderWaNotified(order.id);
         // Refresh local orders via status update broadcast
         await onUpdateStatus(order.id, order.status);
-        setToastMsg(`Panggilan WhatsApp berhasil: ${order.customer_name} (${order.order_number}) 📢`);
+        const actionLabel = isDelivery ? '🛵 Info pesanan sedang diantar' : '📢 Panggilan pesanan siap';
+        setToastMsg(`${actionLabel} berhasil dikirim ke ${order.customer_name} (${order.order_number})!`);
       } else {
         sound.playRemove();
         setToastMsg(`Gagal kirim WA: ${result.reason || 'Cek nomor pembeli'}`);
@@ -580,44 +583,63 @@ export default function CashierDashboard({
                 <div className="mt-4 pt-3 border-t-2 border-espresso">
                   {!isCompleted && !isCancelled ? (
                     <div className="space-y-2">
-                      {/* Opsi Panggilan WhatsApp: Pesanan Siap Diambil (Opsional) */}
-                      {order.customer_phone && (
-                        <div>
-                          {order.is_wa_notified ? (
-                            <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-500 flex items-center justify-between shadow-tactile-sm">
-                              <span className="text-[11px] font-black text-emerald-900 flex items-center gap-1.5">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                <span>Sudah Dipanggil via WA ✓</span>
-                              </span>
+                      {/* Opsi Panggilan WhatsApp: Pesanan Siap Diambil / Sedang Diantar (Opsional) */}
+                      {order.customer_phone && (() => {
+                        const isDeliveryOrder = order.delivery_type === 'delivery' || 
+                          (order.notes && order.notes.includes('🛵 Diantar'));
+
+                        return (
+                          <div>
+                            {order.is_wa_notified ? (
+                              <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-500 flex items-center justify-between shadow-tactile-sm">
+                                <span className="text-[11px] font-black text-emerald-900 flex items-center gap-1.5">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                  <span>
+                                    {isDeliveryOrder ? 'Sudah Dikabari (Sedang Diantar) ✓' : 'Sudah Dipanggil via WA ✓'}
+                                  </span>
+                                </span>
+                                <button
+                                  type="button"
+                                  disabled={sendingWaId === order.id}
+                                  onClick={() => handleSendPickupWa(order)}
+                                  className="text-[10px] font-black text-emerald-700 hover:text-emerald-950 underline flex items-center gap-1 disabled:opacity-50"
+                                  title={isDeliveryOrder ? "Kirim ulang kabar pengantaran ke pembeli" : "Kirim ulang chat panggil jika pembeli belum datang ke meja stand"}
+                                >
+                                  <RefreshCw className={`w-3 h-3 ${sendingWaId === order.id ? 'animate-spin' : ''}`} />
+                                  <span>{isDeliveryOrder ? 'Kabari Lagi' : 'Panggil Lagi'}</span>
+                                </button>
+                              </div>
+                            ) : (
                               <button
                                 type="button"
                                 disabled={sendingWaId === order.id}
                                 onClick={() => handleSendPickupWa(order)}
-                                className="text-[10px] font-black text-emerald-700 hover:text-emerald-950 underline flex items-center gap-1 disabled:opacity-50"
-                                title="Kirim ulang chat panggil jika pembeli belum datang ke meja stand"
+                                className={`w-full py-2 px-3 rounded-xl active:translate-y-0.5 text-white font-black text-xs flex items-center justify-center gap-2 border-2 border-espresso shadow-tactile transition-all disabled:opacity-50 ${
+                                  isDeliveryOrder
+                                    ? 'bg-amber-600 hover:bg-amber-500'
+                                    : 'bg-emerald-600 hover:bg-emerald-500'
+                                }`}
+                                title={isDeliveryOrder 
+                                  ? "Kirim pesan WhatsApp: pesanan selesai & sedang diantar ke kelas!" 
+                                  : "Kirim pesan WhatsApp: pesanan sudah siap diambil di stand!"}
                               >
-                                <RefreshCw className={`w-3 h-3 ${sendingWaId === order.id ? 'animate-spin' : ''}`} />
-                                <span>Panggil Lagi</span>
+                                {sendingWaId === order.id ? (
+                                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                                ) : isDeliveryOrder ? (
+                                  <span className="text-sm">🛵</span>
+                                ) : (
+                                  <MessageCircle className="w-3.5 h-3.5 text-white" />
+                                )}
+                                <span>
+                                  {isDeliveryOrder 
+                                    ? '🛵 Pesanan Sedang Diantar (Chat WA)' 
+                                    : '📢 Pesanan Siap Diambil (Chat WA)'}
+                                </span>
                               </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={sendingWaId === order.id}
-                              onClick={() => handleSendPickupWa(order)}
-                              className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:translate-y-0.5 text-white font-black text-xs flex items-center justify-center gap-2 border-2 border-espresso shadow-tactile transition-all disabled:opacity-50"
-                              title="Kirim pesan WhatsApp: pesanan sudah siap diambil!"
-                            >
-                              {sendingWaId === order.id ? (
-                                <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
-                              ) : (
-                                <MessageCircle className="w-3.5 h-3.5 text-white" />
-                              )}
-                              <span>📢 Pesanan Siap Diambil (Chat WA)</span>
-                            </button>
-                          )}
-                        </div>
-                      )}
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Tombol Utama Racik & Selesai Dilayani */}
                       <div className="flex items-center gap-2">
