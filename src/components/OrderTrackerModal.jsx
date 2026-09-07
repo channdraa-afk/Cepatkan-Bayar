@@ -173,8 +173,8 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
                   </div>
                 )}
 
-                <div className="p-2 bg-white rounded-xl border-2 border-espresso/30 inline-block shadow-sm">
-                  <img src="/qris.png" alt="QRIS Stand" className="max-h-44 w-auto mx-auto rounded-lg object-contain" />
+                <div className="relative w-full max-w-[260px] mx-auto bg-white p-2.5 rounded-2xl border-2 border-espresso shadow-tactile-sm">
+                  <img src="/qris.png" alt="QRIS Stand" className="w-full h-auto max-h-[340px] mx-auto rounded-xl object-contain" />
                 </div>
 
                 {/* Tombol Simpan QRIS ke HP */}

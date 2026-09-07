@@ -382,11 +382,11 @@ export default function CartDrawer({
                         <span>Kode QRIS Stand Bazar</span>
                       </p>
 
-                      <div className="relative inline-block bg-cream-50 p-2 rounded-xl border border-espresso/20">
+                      <div className="relative w-full max-w-[280px] mx-auto bg-white p-2.5 rounded-2xl border-2 border-espresso shadow-tactile-sm">
                         <img 
                           src="/qris.png" 
                           alt="QRIS Pembayaran Stand" 
-                          className="max-h-52 w-auto mx-auto rounded-lg object-contain shadow-sm"
+                          className="w-full h-auto max-h-[360px] mx-auto rounded-xl object-contain"
                         />
                       </div>
 
