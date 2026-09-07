@@ -11,6 +11,7 @@ export default function CashierDashboard({
   orders,
   menus,
   onUpdateStatus,
+  onValidatePayment,
   onOpenStockManager,
   onOpenMenuManager,
   onOpenQrModal,
@@ -20,7 +21,6 @@ export default function CashierDashboard({
   onExitCashier
 }) {
   const [activeTab, setActiveTab] = useState('active'); // 'active' | 'completed' | 'cancelled' | 'all'
-  const [cashInputs, setCashInputs] = useState({}); // { [orderId]: number }
   const [confirmCancelId, setConfirmCancelId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
@@ -48,22 +48,14 @@ export default function CashierDashboard({
     .filter(o => o.payment_method === 'QRIS')
     .reduce((sum, o) => sum + o.total_price, 0);
 
-  // Handle Quick Change
-  const handleSetCash = (orderId, amount) => {
-    sound.playClick();
-    setCashInputs(prev => ({ ...prev, [orderId]: amount }));
-  };
-
   // Centang Selesai Dilayani (Sesuai permintaan Chandra: otomatis tersembunyi dari layar antrean aktif)
   const handleCompleteOrder = async (order) => {
     sound.playComplete();
-    const cashGiven = cashInputs[order.id] || null;
-    const changeAmount = cashGiven ? Math.max(0, cashGiven - order.total_price) : null;
-    
-    await onUpdateStatus(order.id, 'completed', {
-      cash_given: cashGiven,
-      change_amount: changeAmount
-    });
+    // Jika pesanan QRIS dan belum divalidasi, otomatis validasi saat diselesaikan
+    if (order.payment_method === 'QRIS' && !order.is_qris_validated && onValidatePayment) {
+      await onValidatePayment(order.id, true);
+    }
+    await onUpdateStatus(order.id, 'completed');
   };
 
   const handleStartCooking = async (orderId) => {
@@ -376,8 +368,6 @@ export default function CashierDashboard({
             const isCooking = order.status === 'cooking';
             const isCompleted = order.status === 'completed';
             const isCancelled = order.status === 'cancelled';
-            const currentCash = cashInputs[order.id] || 0;
-            const change = currentCash > order.total_price ? currentCash - order.total_price : 0;
 
             return (
               <div
@@ -407,6 +397,22 @@ export default function CashierDashboard({
                         }`}>
                           {order.payment_method}
                         </span>
+
+                        {/* Badge Validasi Khusus QRIS di Header */}
+                        {order.payment_method === 'QRIS' && (
+                          order.is_qris_validated ? (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-900 border border-emerald-500 flex items-center gap-1 shadow-tactile-sm">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Lunas ✓</span>
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-950 border border-amber-500 flex items-center gap-1 animate-pulse shadow-tactile-sm">
+                              <AlertCircle className="w-3 h-3 text-amber-600" />
+                              <span>Belum Valid</span>
+                            </span>
+                          )
+                        )}
+
                         {(order.delivery_type === 'delivery' || (order.notes && order.notes.includes('🛵 Diantar'))) ? (
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-caramel text-cream border border-espresso shadow-tactile-sm">
                             🛵 Diantar ke Kelas
@@ -485,48 +491,55 @@ export default function CashierDashboard({
                     </span>
                   </div>
 
-                  {/* Quick Change Calculator (Hanya untuk pesanan aktif yang belum selesai) */}
-                  {!isCompleted && !isCancelled && order.payment_method === 'Tunai' && (
-                    <div className="mt-3 p-2.5 bg-cream-100 rounded-xl border border-espresso/30 text-xs space-y-2">
-                      <div className="flex items-center justify-between text-[11px] font-bold text-espresso/70">
-                        <span>Hitung Kembalian Cepat:</span>
-                        {change > 0 && (
-                          <span className="font-black text-sage-800 bg-sage-100 px-1.5 py-0.5 rounded border border-sage-600">
-                            Kembalian: {formatRupiah(change)}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleSetCash(order.id, order.total_price)}
-                          className="px-2 py-1 rounded bg-cream border border-espresso text-[10px] font-bold hover:bg-cream-200"
-                        >
-                          Uang Pas
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSetCash(order.id, 20000)}
-                          className="px-2 py-1 rounded bg-cream border border-espresso text-[10px] font-bold hover:bg-cream-200"
-                        >
-                          20k
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSetCash(order.id, 50000)}
-                          className="px-2 py-1 rounded bg-cream border border-espresso text-[10px] font-bold hover:bg-cream-200"
-                        >
-                          50k
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSetCash(order.id, 100000)}
-                          className="px-2 py-1 rounded bg-cream border border-espresso text-[10px] font-bold hover:bg-cream-200"
-                        >
-                          100k
-                        </button>
-                      </div>
+                  {/* Tombol & Status Validasi Pembayaran Khusus QRIS */}
+                  {order.payment_method === 'QRIS' && (
+                    <div className="mt-3">
+                      {order.is_qris_validated ? (
+                        <div className="p-2.5 rounded-xl bg-emerald-50 border-2 border-emerald-600 flex items-center justify-between shadow-tactile-sm">
+                          <div className="flex items-center gap-2 text-emerald-900 font-black text-xs">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>Pembayaran QRIS Valid (Lunas ✓)</span>
+                          </div>
+                          {!isCompleted && !isCancelled && onValidatePayment && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                sound.playClick();
+                                onValidatePayment(order.id, false);
+                              }}
+                              className="text-[10px] text-espresso/60 hover:text-rose-600 font-bold underline shrink-0 ml-2"
+                              title="Batalkan validasi jika salah klik"
+                            >
+                              Batal
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-2.5 rounded-xl bg-amber-50 border-2 border-amber-500 space-y-2 shadow-tactile-sm">
+                          <div className="flex items-center justify-between text-xs font-black text-amber-900">
+                            <span className="flex items-center gap-1.5">
+                              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                              <span>Cek Mutasi / Bukti Transfer</span>
+                            </span>
+                            <span className="text-[10px] bg-amber-200 text-amber-950 px-1.5 py-0.5 rounded font-black">
+                              Menunggu Validasi
+                            </span>
+                          </div>
+                          {!isCompleted && !isCancelled && onValidatePayment && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                sound.playComplete();
+                                onValidatePayment(order.id, true);
+                              }}
+                              className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 border-2 border-espresso shadow-tactile transition-all"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>Validasi Pembayaran (Sudah Bayar ✓)</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

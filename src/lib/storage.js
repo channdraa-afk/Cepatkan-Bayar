@@ -144,18 +144,28 @@ const parseOrder = (order) => {
     }
   }
 
+  // Cek apakah pembayaran QRIS sudah divalidasi kasir
+  const isQrisValidated = Boolean(
+    order.qris_validated ||
+    order.payment_status === 'paid' ||
+    notes.includes('[QRIS_LUNAS]') ||
+    (order.payment_method === 'QRIS' && order.status === 'completed')
+  );
+
   // Catatan bersih tanpa tag kurung siku
   const displayNotes = notes
     .replace(/\[🛵 Diantar ke Kelas\]/g, '')
     .replace(/\[🚶 Ambil di Kasir\]/g, '')
     .replace(/\[WA:\s*[^\]]+\]/g, '')
+    .replace(/\[QRIS_LUNAS\]/g, '')
     .trim();
 
   return {
     ...order,
     customer_phone: phone,
     delivery_type: deliveryType,
-    display_notes: displayNotes
+    display_notes: displayNotes,
+    is_qris_validated: isQrisValidated
   };
 };
 
@@ -295,9 +305,14 @@ export const updateOrderStatus = async (orderId, newStatus, extraData = {}) => {
   const supabase = getSupabase();
   if (supabase) {
     try {
+      const payload = { status: newStatus };
+      if (extraData.notes !== undefined) payload.notes = extraData.notes;
+      if (extraData.cash_given !== undefined) payload.cash_given = extraData.cash_given;
+      if (extraData.change_amount !== undefined) payload.change_amount = extraData.change_amount;
+
       await supabase
         .from('orders')
-        .update({ status: newStatus, ...extraData })
+        .update(payload)
         .eq('id', orderId);
     } catch (err) {
       console.warn('Gagal update status Supabase:', err);
@@ -305,7 +320,7 @@ export const updateOrderStatus = async (orderId, newStatus, extraData = {}) => {
   }
 
   const local = getLocalOrders();
-  const updated = local.map(o => o.id === orderId ? { ...o, status: newStatus, ...extraData } : o);
+  const updated = local.map(o => o.id === orderId ? parseOrder({ ...o, status: newStatus, ...extraData }) : o);
   localStorage.setItem(LOCAL_STORAGE_ORDERS_KEY, JSON.stringify(updated));
 
   if (channel) {
@@ -313,6 +328,29 @@ export const updateOrderStatus = async (orderId, newStatus, extraData = {}) => {
   }
 
   return updated;
+};
+
+export const toggleQrisValidation = async (orderId, isValidated) => {
+  const allOrders = await fetchOrders();
+  const target = allOrders.find(o => o.id === orderId);
+  if (!target) return;
+
+  let currentNotes = target.notes || '';
+  if (isValidated) {
+    if (!currentNotes.includes('[QRIS_LUNAS]')) {
+      currentNotes = `${currentNotes} [QRIS_LUNAS]`.trim();
+    }
+  } else {
+    currentNotes = currentNotes.replace(/\[QRIS_LUNAS\]/g, '').trim();
+  }
+
+  const extraData = {
+    notes: currentNotes,
+    qris_validated: isValidated,
+    payment_status: isValidated ? 'paid' : 'pending'
+  };
+
+  return await updateOrderStatus(orderId, target.status, extraData);
 };
 
 export const deleteOrder = async (orderId) => {

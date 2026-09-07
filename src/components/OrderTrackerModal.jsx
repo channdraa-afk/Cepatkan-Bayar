@@ -1,10 +1,29 @@
 import React from 'react';
-import { CheckCircle, Clock, Utensils, X, Bell } from 'lucide-react';
+import { CheckCircle, Clock, Utensils, X, Bell, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
 
 export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
   if (!order) return null;
+
+  const handleDownloadQris = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    sound.playClick();
+    try {
+      const res = await fetch('/qris.png');
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = blobUrl;
+      downloadLink.download = 'qris-stand-bazar.png';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    } catch {
+      window.open('/qris.png', '_blank');
+    }
+  };
 
   const isPending = order.status === 'pending';
   const isCooking = order.status === 'cooking';
@@ -15,6 +34,7 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
     .replace(/\[🛵 Diantar ke Kelas\]/g, '')
     .replace(/\[🚶 Ambil di Kasir\]/g, '')
     .replace(/\[WA:\s*[^\]]+\]/g, '')
+    .replace(/\[QRIS_LUNAS\]/g, '')
     .trim();
 
   return (
@@ -134,11 +154,39 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
             {order.payment_method === 'Tunai' ? (
               <p>💵 Siapkan uang tunai <strong>{formatRupiah(order.total_price)}</strong> dan bayar ke kasir saat mengambil pesanan.</p>
             ) : (
-              <div className="space-y-2">
-                <p>📱 Silakan scan QRIS di bawah ini sejumlah <strong>{formatRupiah(order.total_price)}</strong> dan tunjukkan bukti transfer ke kasir:</p>
-                <div className="p-2 bg-white rounded-xl border border-espresso/30 inline-block shadow-sm">
+              <div className="space-y-2.5">
+                {/* Status Validasi Pembayaran QRIS dari Kasir */}
+                {order.is_qris_validated ? (
+                  <div className="p-2.5 bg-emerald-100 border-2 border-emerald-600 rounded-xl text-emerald-950 text-xs font-black flex items-center justify-center gap-2 shadow-tactile-sm">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <span>Pembayaran QRIS Terverifikasi Kasir ✓</span>
+                  </div>
+                ) : (
+                  <div className="p-2.5 bg-amber-100 border-2 border-amber-500 rounded-xl text-amber-950 text-xs text-center shadow-tactile-sm space-y-1">
+                    <span className="font-black text-amber-900 flex items-center justify-center gap-1.5">
+                      <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 animate-pulse" />
+                      <span>Menunggu Validasi Kasir</span>
+                    </span>
+                    <p className="text-[11px] font-bold">
+                      Scan QRIS sejumlah <strong>{formatRupiah(order.total_price)}</strong>, lalu tunjukkan bukti transfer ke kasir stand.
+                    </p>
+                  </div>
+                )}
+
+                <div className="p-2 bg-white rounded-xl border-2 border-espresso/30 inline-block shadow-sm">
                   <img src="/qris.png" alt="QRIS Stand" className="max-h-44 w-auto mx-auto rounded-lg object-contain" />
                 </div>
+
+                {/* Tombol Simpan QRIS ke HP */}
+                <button
+                  type="button"
+                  onClick={handleDownloadQris}
+                  className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 border-2 border-espresso shadow-tactile-sm transition-all"
+                  title="Simpan foto QRIS ke galeri HP untuk dibayar lewat m-banking atau e-wallet"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Simpan / Unduh QRIS ke HP</span>
+                </button>
               </div>
             )}
           </div>

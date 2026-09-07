@@ -15,7 +15,7 @@ import {
   fetchMenus, fetchOrders, createOrder, updateMenuStock, 
   quickAddStock, updateOrderStatus, subscribeToData,
   createMenu, updateMenu, deleteMenu, clearAllMenus,
-  deleteOrder, clearAllOrders,
+  deleteOrder, clearAllOrders, toggleQrisValidation,
   fetchExpenses, createExpense, deleteExpense, clearAllExpenses
 } from './lib/storage';
 import { formatRupiah } from './components/MenuCard';
@@ -190,6 +190,11 @@ export default function App() {
     await loadData();
   };
 
+  const handleValidatePayment = async (orderId, isValidated) => {
+    await toggleQrisValidation(orderId, isValidated);
+    await loadData();
+  };
+
   // Cashier Order Deletion (Testing Data)
   const handleDeleteOrder = async (orderId) => {
     await deleteOrder(orderId);
@@ -260,6 +265,7 @@ export default function App() {
             orders={orders}
             menus={menus}
             onUpdateStatus={handleUpdateOrderStatus}
+            onValidatePayment={handleValidatePayment}
             onOpenStockManager={() => setIsStockModalOpen(true)}
             onOpenMenuManager={() => setIsMenuManagerOpen(true)}
             onOpenQrModal={() => setIsQrModalOpen(true)}

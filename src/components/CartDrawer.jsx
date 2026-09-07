@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, ShoppingBag, Trash2, ArrowRight, Banknote, QrCode, AlertCircle, Plus, Minus } from 'lucide-react';
+import { X, ShoppingBag, Trash2, ArrowRight, Banknote, QrCode, AlertCircle, Plus, Minus, Download } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
 
@@ -25,6 +25,25 @@ export default function CartDrawer({
   if (!isOpen) return null;
 
   const totalPrice = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+
+  const handleDownloadQris = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    sound.playClick();
+    try {
+      const res = await fetch('/qris.png');
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = blobUrl;
+      downloadLink.download = 'qris-stand-bazar.png';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    } catch {
+      window.open('/qris.png', '_blank');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -357,18 +376,39 @@ export default function CartDrawer({
                   </div>
 
                   {paymentMethod === 'QRIS' && (
-                    <div className="mt-3 p-3 bg-white border-2 border-espresso rounded-2xl text-center shadow-tactile-sm">
-                      <p className="text-xs font-black text-espresso mb-1.5 flex items-center justify-center gap-1">
-                        <QrCode className="w-4 h-4 text-caramel" /> Scan QRIS Stand di Bawah
+                    <div className="mt-3 p-3 bg-white border-2 border-espresso rounded-2xl text-center shadow-tactile-sm space-y-2.5">
+                      <p className="text-xs font-black text-espresso flex items-center justify-center gap-1.5">
+                        <QrCode className="w-4 h-4 text-caramel" />
+                        <span>Kode QRIS Stand Bazar</span>
                       </p>
-                      <img 
-                        src="/qris.png" 
-                        alt="QRIS Pembayaran Stand" 
-                        className="max-h-52 w-auto mx-auto rounded-xl border border-espresso/20 object-contain shadow-sm"
-                      />
-                      <p className="text-[10px] text-espresso/70 mt-2 font-bold leading-tight">
-                        Dapat di-scan menggunakan BCA, GoPay, OVO, ShopeePay, DANA, dll. Tunjukkan bukti transfer ke kasir ya!
-                      </p>
+
+                      <div className="relative inline-block bg-cream-50 p-2 rounded-xl border border-espresso/20">
+                        <img 
+                          src="/qris.png" 
+                          alt="QRIS Pembayaran Stand" 
+                          className="max-h-52 w-auto mx-auto rounded-lg object-contain shadow-sm"
+                        />
+                      </div>
+
+                      {/* Tombol Unduh / Simpan QRIS ke HP */}
+                      <button
+                        type="button"
+                        onClick={handleDownloadQris}
+                        className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 border-2 border-espresso shadow-tactile transition-all"
+                        title="Simpan foto QRIS ke galeri HP untuk dibayar lewat aplikasi perbankan atau e-wallet"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Simpan / Unduh QRIS ke HP</span>
+                      </button>
+
+                      <div className="p-2.5 bg-cream-100 rounded-xl border border-espresso/20 text-[10px] text-espresso/80 text-left space-y-1 font-bold">
+                        <p className="font-black text-caramel flex items-center gap-1 text-[11px]">
+                          📱 Cara Bayar QRIS di HP:
+                        </p>
+                        <p>1. Klik tombol hijau <strong>"Simpan / Unduh QRIS"</strong> di atas.</p>
+                        <p>2. Buka aplikasi m-Banking atau E-Wallet (BCA, GoPay, DANA, ShopeePay, OVO).</p>
+                        <p>3. Pilih <strong>QRIS &rarr; Scan dari Galeri / Upload Gambar</strong>, lalu selesaikan pembayaran.</p>
+                      </div>
                     </div>
                   )}
                 </div>
