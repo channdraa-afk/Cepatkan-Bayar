@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  /* 3D Tactile Pushable Buttons */
+  .btn-tactile-primary {
+    @apply bg-caramel text-cream font-bold border-2 border-espresso rounded-xl shadow-tactile transition-all duration-100 active:translate-y-1 active:shadow-tactile-pressed hover:brightness-105 select-none disabled:opacity-50 disabled:pointer-events-none;
+  }
+  
+  .btn-tactile-sage {
+    @apply bg-sage text-espresso font-bold border-2 border-espresso rounded-xl shadow-tactile transition-all duration-100 active:translate-y-1 active:shadow-tactile-pressed hover:brightness-105 select-none disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-tactile-cream {
+    @apply bg-cream-50 text-espresso font-bold border-2 border-espresso rounded-xl shadow-tactile transition-all duration-100 active:translate-y-1 active:shadow-tactile-pressed hover:bg-white select-none disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-tactile-danger {
+    @apply bg-rose-700 text-cream font-bold border-2 border-espresso rounded-xl shadow-tactile transition-all duration-100 active:translate-y-1 active:shadow-tactile-pressed hover:brightness-110 select-none disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  /* Tactile Card */
+  .card-tactile {
+    @apply bg-cream-100 border-2 border-espresso rounded-2xl shadow-tactile transition-all;
+  }
+}
+
+/* Custom retro scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F7F1DE;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD1BE;
+  border: 2px solid #4E220F;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9D6638;
+}
