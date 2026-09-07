@@ -20,16 +20,49 @@ export default function QrCodeModal({ isOpen, onClose }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownloadWebQr = () => {
+  const handleDownloadWebQr = async (type = 'png') => {
     sound.playClick();
-    if (canvasRef.current) {
-      const pngUrl = canvasRef.current.toDataURL('image/png');
+    try {
+      const fileUrl = type === 'svg' ? '/qr-stand-vector.svg' : '/qr-stand-poster.png';
+      const fileName = type === 'svg' ? 'qr-stand-vector-hd.svg' : 'qr-stand-poster-hd.png';
+      const res = await fetch(fileUrl);
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
       const downloadLink = document.createElement('a');
-      downloadLink.href = pngUrl;
-      downloadLink.download = 'qr-menu-stand-cepatkan-bayar.png';
+      downloadLink.href = blobUrl;
+      downloadLink.download = fileName;
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    } catch (e) {
+      if (canvasRef.current) {
+        const pngUrl = canvasRef.current.toDataURL('image/png');
+        const downloadLink = document.createElement('a');
+        downloadLink.href = pngUrl;
+        downloadLink.download = 'qr-menu-stand-cepatkan-bayar.png';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      }
+    }
+  };
+
+  const handleDownloadPoster = async () => {
+    sound.playClick();
+    try {
+      const res = await fetch('/stand-bazar-poster.png');
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = blobUrl;
+      downloadLink.download = 'poster-stand-bazar-a4.png';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    } catch (e) {
+      window.open('/stand-bazar-poster.png', '_blank');
     }
   };
 
@@ -109,13 +142,14 @@ export default function QrCodeModal({ isOpen, onClose }) {
               Tunjukkan layar ini ke pembeli atau tempel di akrilik meja
             </p>
 
-            <div className="p-3.5 bg-white border-2 border-espresso rounded-2xl shadow-tactile inline-block mx-auto mb-3">
+            <div className="p-3 bg-white border-2 border-espresso rounded-2xl shadow-tactile inline-block mx-auto mb-3">
               <QRCodeCanvas
                 ref={canvasRef}
                 value={targetUrl}
                 size={180}
                 level="H"
-                includeMargin={false}
+                includeMargin={true}
+                marginSize={3}
                 fgColor="#4E220F"
                 bgColor="#FFFFFF"
               />
@@ -142,11 +176,31 @@ export default function QrCodeModal({ isOpen, onClose }) {
                 </button>
               </div>
 
+              {/* Unduh QR PNG High-Res */}
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  onClick={() => handleDownloadWebQr('png')}
+                  className="btn-tactile-primary py-2 text-xs flex items-center justify-center gap-1 font-black shadow-tactile-sm"
+                  title="Unduh QR resolusi tinggi 1200x1200px format PNG dengan margin rapi"
+                >
+                  <Download className="w-3.5 h-3.5" /> QR Poster (PNG)
+                </button>
+                <button
+                  onClick={() => handleDownloadWebQr('svg')}
+                  className="btn-tactile-sage py-2 text-xs flex items-center justify-center gap-1 font-black shadow-tactile-sm"
+                  title="Unduh format vektor SVG untuk diedit di Canva / Photoshop tanpa pecah"
+                >
+                  <Download className="w-3.5 h-3.5" /> Vektor (SVG)
+                </button>
+              </div>
+
+              {/* Unduh Poster Stand Bazar Lengkap */}
               <button
-                onClick={handleDownloadWebQr}
-                className="btn-tactile-primary w-full py-2.5 text-xs flex items-center justify-center gap-1.5 font-black shadow-tactile"
+                onClick={handleDownloadPoster}
+                className="py-2.5 px-3 bg-amber-400 text-espresso border-2 border-espresso rounded-xl text-xs font-black shadow-tactile hover:brightness-105 active:translate-y-0.5 transition-all flex items-center justify-center gap-1.5"
+                title="Unduh poster stand A4 siap cetak & pasang di meja"
               >
-                <Download className="w-4 h-4" /> Unduh Gambar QR (PNG)
+                <span>📄 Unduh Poster Meja Siap Cetak (A4)</span>
               </button>
             </div>
           </div>
