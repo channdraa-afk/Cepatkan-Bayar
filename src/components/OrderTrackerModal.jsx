@@ -115,21 +115,36 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
                 <span className="text-[10px] leading-tight">2. Sedang Diracik</span>
               </div>
 
-              {/* Step 3: Siap Diambil */}
+              {/* Step 3: Siap Diambil / Diantar */}
               <div className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
                 isCompleted 
                   ? 'bg-sage border-2 border-espresso text-espresso font-black shadow-tactile animate-bounce' 
                   : 'bg-cream-200/40 border-espresso/20 text-espresso/40'
               }`}>
                 <CheckCircle className="w-5 h-5 mb-1" />
-                <span className="text-[10px] leading-tight">3. Siap Diambil!</span>
+                <span className="text-[10px] leading-tight">
+                  {isDelivery ? '3. Sedang Diantar!' : '3. Siap Diambil!'}
+                </span>
               </div>
             </div>
 
+            {/* Banner Khusus Saat Sedang Diracik */}
+            {isCooking && (
+              <div className="mt-3 p-2.5 bg-amber-100 border-2 border-caramel rounded-xl text-center text-xs font-black text-amber-950 flex items-center justify-center gap-1.5 animate-pulse shadow-tactile-sm">
+                <Utensils className="w-4 h-4 text-caramel shrink-0" />
+                <span>Pesananmu sedang diracik oleh tim stand! Harap ditunggu yaa 👨‍🍳✨</span>
+              </div>
+            )}
+
+            {/* Banner Khusus Saat Selesai */}
             {isCompleted && (
-              <div className="mt-3 p-2.5 bg-sage-100 border border-sage-600 rounded-lg text-center text-xs font-black text-espresso flex items-center justify-center gap-1.5">
-                <Bell className="w-4 h-4 text-espresso animate-wiggle" />
-                Hore! Pesananmu sudah siap diambil di meja stand!
+              <div className="mt-3 p-2.5 bg-emerald-100 border-2 border-emerald-600 rounded-xl text-center text-xs font-black text-emerald-950 flex items-center justify-center gap-1.5 shadow-tactile-sm">
+                <Bell className="w-4 h-4 text-emerald-700 animate-bounce shrink-0" />
+                <span>
+                  {isDelivery 
+                    ? '🛵 Hore! Pesananmu sudah selesai & sedang meluncur diantar ke kelas!' 
+                    : '🥤 Hore! Pesananmu sudah siap, yuk langsung ambil di meja kasir stand!'}
+                </span>
               </div>
             )}
           </div>

@@ -4,6 +4,32 @@ import { INITIAL_MENUS } from '../data/initialMenu';
 const LOCAL_STORAGE_MENUS_KEY = 'cepatkanbayar_menus_local';
 const LOCAL_STORAGE_ORDERS_KEY = 'cepatkanbayar_orders_local';
 const LOCAL_STORAGE_EXPENSES_KEY = 'cepatkanbayar_expenses_local';
+const LOCAL_STORAGE_CUSTOMER_ORDERS_KEY = 'cepatkanbayar_my_order_ids';
+
+// Helper riwayat pesanan milik perangkat pembeli ini
+export const getCustomerOrderIds = () => {
+  try {
+    const data = localStorage.getItem(LOCAL_STORAGE_CUSTOMER_ORDERS_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveCustomerOrderId = (orderId) => {
+  if (!orderId) return [];
+  try {
+    const existing = getCustomerOrderIds();
+    if (!existing.includes(orderId)) {
+      const updated = [orderId, ...existing].slice(0, 30);
+      localStorage.setItem(LOCAL_STORAGE_CUSTOMER_ORDERS_KEY, JSON.stringify(updated));
+      return updated;
+    }
+    return existing;
+  } catch {
+    return [];
+  }
+};
 
 // Cross-tab broadcast channel for local development and offline mode
 const channel = typeof window !== 'undefined' && window.BroadcastChannel 

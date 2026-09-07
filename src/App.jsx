@@ -10,18 +10,20 @@ import StockManagerModal from './components/StockManagerModal';
 import MenuManagerModal from './components/MenuManagerModal';
 import QrCodeModal from './components/QrCodeModal';
 import FinancialModal from './components/FinancialModal';
+import CustomerOrdersModal from './components/CustomerOrdersModal';
 
 import { 
   fetchMenus, fetchOrders, createOrder, updateMenuStock, 
   quickAddStock, updateOrderStatus, subscribeToData,
   createMenu, updateMenu, deleteMenu, clearAllMenus,
   deleteOrder, clearAllOrders, toggleQrisValidation,
-  fetchExpenses, createExpense, deleteExpense, clearAllExpenses
+  fetchExpenses, createExpense, deleteExpense, clearAllExpenses,
+  getCustomerOrderIds, saveCustomerOrderId
 } from './lib/storage';
 import { formatRupiah } from './components/MenuCard';
 import { sound } from './lib/audio';
 import { 
-  Coffee, Sparkles, Search, ShieldCheck, Plus, ChevronRight, ClipboardList
+  Coffee, Sparkles, Search, ShieldCheck, Plus, ChevronRight, ClipboardList, Clock, Utensils
 } from 'lucide-react';
 
 export default function App() {
@@ -42,6 +44,11 @@ export default function App() {
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [isFinancialModalOpen, setIsFinancialModalOpen] = useState(false);
   const [activeCustomerOrder, setActiveCustomerOrder] = useState(null);
+  const [isMyOrdersOpen, setIsMyOrdersOpen] = useState(false);
+  const [myOrderIds, setMyOrderIds] = useState(() => getCustomerOrderIds());
+  const [toastAlert, setToastAlert] = useState(null);
+
+  const prevOrderStatusesRef = useRef({});
 
   const isOrderCreatingRef = useRef(false);
 
@@ -79,7 +86,21 @@ export default function App() {
     };
   }, [isCashier]);
 
-  // Keep customer tracked order in sync if status changes
+  // Helper data pesanan milik pelanggan di perangkat ini
+  const myOrders = orders.filter(o => myOrderIds.includes(o.id));
+  const activeMyOrders = myOrders.filter(o => o.status === 'pending' || o.status === 'cooking');
+  const latestActiveOrder = activeMyOrders[0] || null;
+  const hasCookingOrder = activeMyOrders.some(o => o.status === 'cooking');
+
+  // Auto-dismiss toast alert
+  useEffect(() => {
+    if (toastAlert) {
+      const timer = setTimeout(() => setToastAlert(null), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastAlert]);
+
+  // Keep customer tracked order in sync if status changes & notify customer on "Racik" or "Selesai"
   useEffect(() => {
     if (activeCustomerOrder) {
       const updated = orders.find(o => o.id === activeCustomerOrder.id);
@@ -87,10 +108,43 @@ export default function App() {
         setActiveCustomerOrder(updated);
         if (updated.status === 'completed') {
           sound.playComplete();
+        } else if (updated.status === 'cooking') {
+          sound.playOrderSuccess();
         }
       }
     }
-  }, [orders, activeCustomerOrder]);
+
+    // Monitor all customer active orders for realtime audio/toast alerts
+    if (!isCashier && myOrders.length > 0) {
+      for (const order of myOrders) {
+        const prevStatus = prevOrderStatusesRef.current[order.id];
+        if (prevStatus && prevStatus !== order.status) {
+          if (order.status === 'cooking') {
+            sound.playOrderSuccess();
+            setToastAlert(`👨‍🍳 Pesanan #${order.order_number} sedang diracik oleh tim stand!`);
+          } else if (order.status === 'completed') {
+            sound.playComplete();
+            try {
+              confetti({
+                particleCount: 50,
+                spread: 60,
+                origin: { y: 0.65 }
+              });
+            } catch {}
+            const isDelivery = order.delivery_type === 'delivery' || (order.notes && order.notes.includes('🛵 Diantar'));
+            setToastAlert(isDelivery
+              ? `🛵 Pesanan #${order.order_number} sudah selesai dan sedang diantar ke kelas!`
+              : `🎉 Pesanan #${order.order_number} sudah siap diambil di meja stand!`);
+          }
+        }
+        prevOrderStatusesRef.current[order.id] = order.status;
+      }
+    } else {
+      myOrders.forEach(o => {
+        prevOrderStatusesRef.current[o.id] = o.status;
+      });
+    }
+  }, [orders, activeCustomerOrder, myOrders, isCashier]);
 
   // Cart operations
   const handleAddToCart = (item) => {
@@ -131,6 +185,8 @@ export default function App() {
     isOrderCreatingRef.current = true;
     try {
       const created = await createOrder(orderPayload);
+      const updatedIds = saveCustomerOrderId(created.id);
+      if (updatedIds) setMyOrderIds(updatedIds);
       setCart([]);
       setActiveCustomerOrder(created);
       await loadData();
@@ -255,7 +311,26 @@ export default function App() {
         }}
         onOpenMenuManager={() => setIsMenuManagerOpen(true)}
         pendingOrdersCount={pendingOrdersCount}
+        myOrdersCount={activeMyOrders.length}
+        onOpenMyOrders={() => setIsMyOrdersOpen(true)}
+        hasCookingOrder={hasCookingOrder}
       />
+
+      {/* Toast Notifikasi Realtime untuk Pelanggan */}
+      {toastAlert && (
+        <div className="fixed top-16 left-3 right-3 sm:left-auto sm:right-4 sm:max-w-md z-50 p-3.5 rounded-2xl bg-amber-100 border-2 border-caramel text-espresso font-black text-xs shadow-tactile-lg flex items-center justify-between gap-2 animate-in slide-in-from-top-4">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="w-4 h-4 text-caramel shrink-0" />
+            <span className="truncate">{toastAlert}</span>
+          </div>
+          <button 
+            onClick={() => setToastAlert(null)}
+            className="w-6 h-6 rounded-lg bg-cream border border-espresso flex items-center justify-center text-espresso/70 hover:text-espresso shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 pb-24">
@@ -311,6 +386,63 @@ export default function App() {
                     className="btn-tactile-sage px-3 py-1.5 text-xs font-black flex items-center gap-1"
                   >
                     <ClipboardList className="w-3.5 h-3.5" /> Antrean ({pendingOrdersCount})
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Sticky Live Tracker Banner untuk Pesanan yang Sedang Aktif di HP Pembeli */}
+            {!isCashier && latestActiveOrder && (
+              <div 
+                onClick={() => {
+                  sound.playClick();
+                  setActiveCustomerOrder(latestActiveOrder);
+                }}
+                className={`p-3.5 sm:p-4 rounded-2xl border-2 border-espresso shadow-tactile cursor-pointer transition-all hover:brightness-105 flex items-center justify-between gap-3 animate-in slide-in-from-top-2 ${
+                  latestActiveOrder.status === 'cooking'
+                    ? 'bg-amber-100/95 border-caramel shadow-tactile-lg'
+                    : 'bg-cream-100/95'
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-10 h-10 rounded-xl border-2 border-espresso flex items-center justify-center shrink-0 shadow-tactile-sm ${
+                    latestActiveOrder.status === 'cooking' ? 'bg-caramel text-cream' : 'bg-amber-200 text-espresso'
+                  }`}>
+                    {latestActiveOrder.status === 'cooking' ? (
+                      <Utensils className="w-5 h-5 animate-pulse" />
+                    ) : (
+                      <Clock className="w-5 h-5 text-amber-900" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-sm font-black text-espresso">
+                        Antrean #{latestActiveOrder.order_number}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border border-espresso ${
+                        latestActiveOrder.status === 'cooking' 
+                          ? 'bg-caramel text-cream animate-pulse' 
+                          : 'bg-amber-200 text-amber-950'
+                      }`}>
+                        {latestActiveOrder.status === 'cooking' ? 'Sedang Diracik 👨‍🍳' : 'Menunggu Kasir ⏳'}
+                      </span>
+                      <span className="text-[10px] font-bold text-espresso/60 hidden sm:inline">
+                        • {latestActiveOrder.customer_name}
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-espresso/80 truncate mt-0.5">
+                      {latestActiveOrder.items.map(i => `${i.qty}× ${i.name}`).join(', ')}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    className="btn-tactile-primary px-3 py-1.5 text-xs font-black flex items-center gap-1"
+                  >
+                    <span>Pantau Live</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -482,6 +614,16 @@ export default function App() {
         onNewOrder={() => {
           setActiveCustomerOrder(null);
           setIsCartOpen(false);
+        }}
+      />
+
+      <CustomerOrdersModal
+        isOpen={isMyOrdersOpen}
+        onClose={() => setIsMyOrdersOpen(false)}
+        myOrders={myOrders}
+        onSelectOrder={(order) => {
+          setActiveCustomerOrder(order);
+          setIsMyOrdersOpen(false);
         }}
       />
 

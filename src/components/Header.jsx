@@ -11,7 +11,10 @@ export default function Header({
   onToggleCashierView,
   onLogoutCashier,
   onOpenMenuManager,
-  pendingOrdersCount
+  pendingOrdersCount,
+  myOrdersCount = 0,
+  onOpenMyOrders,
+  hasCookingOrder = false
 }) {
   const [tapCount, setTapCount] = useState(0);
   const timerRef = useRef(null);
@@ -119,21 +122,52 @@ export default function Header({
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => {
-                sound.playClick();
-                onOpenCart();
-              }}
-              className="relative flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl bg-caramel text-cream font-extrabold border-2 border-espresso shadow-tactile hover:brightness-105 active:translate-y-1 active:shadow-tactile-pressed transition-all"
-            >
-              <ShoppingBag className="w-4 h-4 text-cream" />
-              <span className="text-xs sm:text-sm">Keranjang</span>
-              {cartCount > 0 && (
-                <span className="w-5 h-5 rounded-full bg-cream text-espresso text-xs font-black flex items-center justify-center border border-espresso ml-0.5">
-                  {cartCount}
-                </span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Tombol Pesanan Saya (Pantau Antrean & Riwayat) */}
+              {onOpenMyOrders && (
+                <button
+                  onClick={() => {
+                    sound.playClick();
+                    onOpenMyOrders();
+                  }}
+                  className={`relative flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl font-black border-2 border-espresso transition-all active:translate-y-0.5 ${
+                    hasCookingOrder
+                      ? 'bg-amber-400 text-espresso shadow-tactile animate-pulse'
+                      : myOrdersCount > 0
+                      ? 'bg-cream-100 text-espresso shadow-tactile-sm hover:bg-cream-200'
+                      : 'bg-cream-50 text-espresso/70 shadow-tactile-sm hover:bg-cream-100'
+                  }`}
+                  title="Lihat status pesanan aktif & riwayat belanja"
+                >
+                  <ClipboardList className="w-4 h-4 text-espresso" />
+                  <span className="text-xs font-black hidden sm:inline">Pesanan Saya</span>
+                  {myOrdersCount > 0 && (
+                    <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center border border-espresso ml-0.5 ${
+                      hasCookingOrder ? 'bg-caramel text-cream' : 'bg-caramel/20 text-espresso'
+                    }`}>
+                      {myOrdersCount}
+                    </span>
+                  )}
+                </button>
               )}
-            </button>
+
+              {/* Tombol Keranjang Belanja */}
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  onOpenCart();
+                }}
+                className="relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-caramel text-cream font-extrabold border-2 border-espresso shadow-tactile hover:brightness-105 active:translate-y-1 active:shadow-tactile-pressed transition-all"
+              >
+                <ShoppingBag className="w-4 h-4 text-cream" />
+                <span className="text-xs sm:text-sm">Keranjang</span>
+                {cartCount > 0 && (
+                  <span className="w-5 h-5 rounded-full bg-cream text-espresso text-xs font-black flex items-center justify-center border border-espresso ml-0.5">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+            </div>
           )}
         </div>
 
