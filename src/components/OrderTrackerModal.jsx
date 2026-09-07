@@ -52,8 +52,9 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
     .trim();
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden overscroll-contain bg-espresso/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-      <div className="relative w-full max-w-md bg-cream border-2 border-espresso rounded-2xl shadow-tactile-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden overscroll-contain bg-espresso/60 backdrop-blur-sm p-3 sm:p-4">
+      <div className="min-h-full flex items-center justify-center py-3 sm:py-6">
+        <div className="relative w-full max-w-md bg-cream border-2 border-espresso rounded-2xl shadow-tactile-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Top vintage banner */}
         <div className="bg-caramel p-4 border-b-2 border-espresso text-cream text-center relative">
@@ -243,8 +244,8 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
           </div>
 
         </div>
-
       </div>
     </div>
-  );
+  </div>
+);
 }

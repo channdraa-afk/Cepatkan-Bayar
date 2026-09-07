@@ -32,8 +32,9 @@ export default function CustomerOrdersModal({
   const pastOrders = myOrders.filter(o => o.status === 'completed' || o.status === 'cancelled');
 
   return (
-    <div className="fixed inset-0 z-50 bg-espresso/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-hidden overscroll-contain">
-      <div className="relative w-full max-w-lg bg-cream border-2 border-espresso rounded-2xl shadow-tactile-lg flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 bg-espresso/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto overflow-x-hidden overscroll-contain">
+      <div className="min-h-full flex items-center justify-center py-2 sm:py-4">
+        <div className="relative w-full max-w-lg bg-cream border-2 border-espresso rounded-2xl shadow-tactile-lg flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="p-4 border-b-2 border-espresso bg-cream-100 flex items-center justify-between">
@@ -257,8 +258,8 @@ export default function CustomerOrdersModal({
             Tutup
           </button>
         </div>
-
       </div>
     </div>
-  );
+  </div>
+);
 }
