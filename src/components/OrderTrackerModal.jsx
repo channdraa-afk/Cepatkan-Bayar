@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { CheckCircle, Clock, Utensils, X, Bell, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { CheckCircle, Clock, Utensils, X, Bell, Download, AlertCircle, CheckCircle2, MessageCircle } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
+import { getCashierWaUrl } from '../lib/whatsapp';
 
 export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
   // Kunci scroll background halaman saat modal tiket terbuka di HP
@@ -211,12 +212,30 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
                 <button
                   type="button"
                   onClick={handleDownloadQris}
-                  className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 border-2 border-espresso shadow-tactile-sm transition-all"
+                  className="w-full py-2 px-3 rounded-xl bg-cream hover:bg-cream-100 text-espresso font-black text-xs flex items-center justify-center gap-2 border-2 border-espresso shadow-tactile-sm transition-all"
                   title="Simpan foto QRIS ke galeri HP untuk dibayar lewat m-banking atau e-wallet"
                 >
                   <Download className="w-4 h-4" />
                   <span>Simpan / Unduh QRIS ke HP</span>
                 </button>
+
+                {/* Tombol Kirim Bukti Transfer ke WA Kasir */}
+                <a
+                  href={getCashierWaUrl(order)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => sound.playClick()}
+                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:translate-y-0.5 text-white font-black text-xs flex items-center justify-center gap-2 border-2 border-espresso shadow-tactile transition-all text-center"
+                  title="Kirim foto/screenshot bukti transfer QRIS langsung ke WhatsApp Kasir Stand"
+                >
+                  <MessageCircle className="w-4 h-4 text-white shrink-0" />
+                  <span>Kirim Bukti Transfer ke WA Kasir</span>
+                </a>
+
+                {/* Petunjuk Santai: Pembeli Tidak Wajib Menunggu di Layar Ini */}
+                <p className="text-[11px] text-espresso/70 font-bold text-center bg-cream-100 p-2 rounded-xl border border-espresso/20">
+                  💡 <em>Setelah bayar / kirim bukti, kamu bebas tutup tiket ini atau pesan menu lain. Status validasi kasir akan ter-update otomatis!</em>
+                </p>
               </div>
             )}
           </div>

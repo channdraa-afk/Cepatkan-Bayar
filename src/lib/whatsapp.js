@@ -8,7 +8,61 @@
 import { formatRupiah } from '../components/MenuCard';
 
 const FONNTE_TOKEN_STORAGE_KEY = 'cepatkanbayar_fonnte_token';
+const CASHIER_PHONE_STORAGE_KEY = 'cepatkanbayar_cashier_phone';
 const STAND_NAME = 'Stand Bazar CepatkanBayar';
+export const DEFAULT_CASHIER_PHONE = '085641671653';
+
+/**
+ * Dapatkan nomor WhatsApp kasir
+ */
+export function getCashierPhone() {
+  try {
+    return localStorage.getItem(CASHIER_PHONE_STORAGE_KEY) || DEFAULT_CASHIER_PHONE;
+  } catch {
+    return DEFAULT_CASHIER_PHONE;
+  }
+}
+
+/**
+ * Ubah nomor WhatsApp kasir
+ */
+export function setCashierPhone(phone) {
+  try {
+    if (phone && phone.trim()) {
+      localStorage.setItem(CASHIER_PHONE_STORAGE_KEY, phone.trim());
+    } else {
+      localStorage.removeItem(CASHIER_PHONE_STORAGE_KEY);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Buat URL direct WhatsApp untuk pembeli mengirim bukti transfer QRIS ke kasir
+ */
+export function getCashierWaUrl(order) {
+  const phone = normalizeWaNumber(getCashierPhone());
+  if (!order) return `https://wa.me/${phone}`;
+
+  const customerName = order.customer_name || 'Pembeli';
+  const orderNumber = order.order_number || '-';
+  const totalPrice = formatRupiah(order.total_price || 0);
+  const paymentMethod = order.payment_method || 'QRIS';
+
+  const text = [
+    'Halo Kasir Stand Bazar CepatkanBayar! 👋',
+    'Saya ingin kirim bukti transfer QRIS:',
+    `📋 *No. Pesanan:* ${orderNumber}`,
+    `👤 *Nama:* ${customerName}`,
+    `💰 *Total:* ${totalPrice} (${paymentMethod})`,
+    '',
+    '(Berikut saya lampirkan foto/screenshot bukti transfer di bawah ya kak 👇)'
+  ].join('\n');
+
+  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+}
 
 /**
  * Normalisasi nomor HP ke format WhatsApp internasional (awalan 62)
