@@ -118,7 +118,12 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
             {order.payment_method === 'Tunai' ? (
               <p>💵 Siapkan uang tunai <strong>{formatRupiah(order.total_price)}</strong> dan bayar ke kasir saat mengambil pesanan.</p>
             ) : (
-              <p>📱 Silakan tunjukkan bukti transfer QRIS <strong>{formatRupiah(order.total_price)}</strong> ke kasir saat mengambil pesanan.</p>
+              <div className="space-y-2">
+                <p>📱 Silakan scan QRIS di bawah ini sejumlah <strong>{formatRupiah(order.total_price)}</strong> dan tunjukkan bukti transfer ke kasir:</p>
+                <div className="p-2 bg-white rounded-xl border border-espresso/30 inline-block shadow-sm">
+                  <img src="/qris.png" alt="QRIS Stand" className="max-h-44 w-auto mx-auto rounded-lg object-contain" />
+                </div>
+              </div>
             )}
           </div>
 

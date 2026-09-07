@@ -224,6 +224,22 @@ export default function CartDrawer({
                       <QrCode className="w-4 h-4" /> QRIS Stand
                     </button>
                   </div>
+
+                  {paymentMethod === 'QRIS' && (
+                    <div className="mt-3 p-3 bg-white border-2 border-espresso rounded-2xl text-center shadow-tactile-sm">
+                      <p className="text-xs font-black text-espresso mb-1.5 flex items-center justify-center gap-1">
+                        <QrCode className="w-4 h-4 text-caramel" /> Scan QRIS Stand di Bawah
+                      </p>
+                      <img 
+                        src="/qris.png" 
+                        alt="QRIS Pembayaran Stand" 
+                        className="max-h-52 w-auto mx-auto rounded-xl border border-espresso/20 object-contain shadow-sm"
+                      />
+                      <p className="text-[10px] text-espresso/70 mt-2 font-bold leading-tight">
+                        Dapat di-scan menggunakan BCA, GoPay, OVO, ShopeePay, DANA, dll. Tunjukkan bukti transfer ke kasir ya!
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {errorMsg && (
