@@ -36,8 +36,20 @@ export default function App() {
 
   // Modals & Views
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isCashier, setIsCashier] = useState(false);
-  const [cashierView, setCashierView] = useState('dashboard'); // 'dashboard' | 'catalog'
+  const [isCashier, setIsCashier] = useState(() => {
+    try {
+      return localStorage.getItem('cepatkanbayar_cashier_active') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [cashierView, setCashierView] = useState(() => {
+    try {
+      return localStorage.getItem('cepatkanbayar_cashier_view') || 'dashboard';
+    } catch {
+      return 'dashboard';
+    }
+  });
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [isMenuManagerOpen, setIsMenuManagerOpen] = useState(false);
@@ -49,8 +61,44 @@ export default function App() {
   const [toastAlert, setToastAlert] = useState(null);
 
   const prevOrderStatusesRef = useRef({});
-
   const isOrderCreatingRef = useRef(false);
+  const knownOrderIdsRef = useRef(new Set());
+
+  // Handle State Kasir yang Awet & Anti-Logout saat Refresh Browser
+  const handleLoginCashier = () => {
+    setIsCashier(true);
+    setCashierView('dashboard');
+    try {
+      localStorage.setItem('cepatkanbayar_cashier_active', 'true');
+      localStorage.setItem('cepatkanbayar_cashier_view', 'dashboard');
+    } catch {}
+  };
+
+  const handleLogoutCashier = () => {
+    setIsCashier(false);
+    setCashierView('dashboard');
+    try {
+      localStorage.removeItem('cepatkanbayar_cashier_active');
+      localStorage.removeItem('cepatkanbayar_cashier_view');
+    } catch {}
+  };
+
+  const handleSetCashierView = (view) => {
+    setCashierView(view);
+    try {
+      localStorage.setItem('cepatkanbayar_cashier_view', view);
+    } catch {}
+  };
+
+  const handleToggleCashierView = () => {
+    setCashierView(prev => {
+      const next = prev === 'dashboard' ? 'catalog' : 'dashboard';
+      try {
+        localStorage.setItem('cepatkanbayar_cashier_view', next);
+      } catch {}
+      return next;
+    });
+  };
 
   // Load Initial Data
   const loadData = async () => {
@@ -60,6 +108,8 @@ export default function App() {
     setMenus(loadedMenus);
     setOrders(loadedOrders);
     setExpenses(loadedExpenses);
+    // Catat ID order awal agar tidak memicu bel kasir palsu saat kasir baru dibuka/refresh
+    knownOrderIdsRef.current = new Set(loadedOrders.map(o => o.id));
   };
 
   useEffect(() => {
@@ -99,6 +149,38 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [toastAlert]);
+
+  // Background Auto-Polling Cerdas:
+  // 1. Laptop Kasir: Polling senyap tiap 3 detik agar pesanan baru dari HP langsung muncul & bel klining berbunyi otomatis
+  // 2. HP Pembeli: Polling senyap tiap 4 detik jika ada pesanan aktif agar status racik & selesai auto-update tanpa refresh
+  useEffect(() => {
+    const shouldPoll = isCashier || activeMyOrders.length > 0;
+    if (!shouldPoll) return;
+
+    const pollInterval = isCashier ? 3000 : 4000;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const freshOrders = await fetchOrders();
+
+        if (isCashier) {
+          const hasNewPending = freshOrders.some(
+            o => o.status === 'pending' && !knownOrderIdsRef.current.has(o.id)
+          );
+          if (hasNewPending) {
+            sound.playCashRegister();
+          }
+          knownOrderIdsRef.current = new Set(freshOrders.map(o => o.id));
+        }
+
+        setOrders(freshOrders);
+      } catch (err) {
+        console.warn('Auto-polling orders warning:', err);
+      }
+    }, pollInterval);
+
+    return () => clearInterval(intervalId);
+  }, [isCashier, activeMyOrders.length]);
 
   // Keep customer tracked order in sync if status changes & notify customer on "Racik" or "Selesai"
   useEffect(() => {
@@ -304,11 +386,8 @@ export default function App() {
         isCashier={isCashier}
         onOpenCashierPin={() => setIsPinModalOpen(true)}
         cashierView={cashierView}
-        onToggleCashierView={() => setCashierView(prev => prev === 'dashboard' ? 'catalog' : 'dashboard')}
-        onLogoutCashier={() => {
-          setIsCashier(false);
-          setCashierView('dashboard');
-        }}
+        onToggleCashierView={handleToggleCashierView}
+        onLogoutCashier={handleLogoutCashier}
         onOpenMenuManager={() => setIsMenuManagerOpen(true)}
         pendingOrdersCount={pendingOrdersCount}
         myOrdersCount={activeMyOrders.length}
@@ -347,7 +426,7 @@ export default function App() {
             onOpenFinancial={() => setIsFinancialModalOpen(true)}
             onDeleteOrder={handleDeleteOrder}
             onClearAllOrders={handleClearAllOrders}
-            onExitCashier={() => setCashierView('catalog')}
+            onExitCashier={() => handleSetCashierView('catalog')}
           />
         ) : (
           /* ================= KATALOG MENU (PEMBELI & KASIR IN-CATALOG) ================= */
@@ -381,7 +460,7 @@ export default function App() {
                   <button
                     onClick={() => {
                       sound.playClick();
-                      setCashierView('dashboard');
+                      handleSetCashierView('dashboard');
                     }}
                     className="btn-tactile-sage px-3 py-1.5 text-xs font-black flex items-center gap-1"
                   >
@@ -632,8 +711,7 @@ export default function App() {
         onClose={() => setIsPinModalOpen(false)}
         onSuccess={() => {
           setIsPinModalOpen(false);
-          setIsCashier(true);
-          setCashierView('dashboard');
+          handleLoginCashier();
         }}
       />
 
