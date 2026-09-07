@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, ShoppingBag, Trash2, ArrowRight, Banknote, QrCode, AlertCircle, Plus, Minus, Download } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
@@ -21,6 +21,21 @@ export default function CartDrawer({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const isSubmittingRef = useRef(false);
+
+  // Kunci scroll background saat keranjang drawer terbuka di HP
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    const originalWidth = document.body.style.width;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.width = '100%';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.width = originalWidth;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

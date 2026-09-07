@@ -1,9 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CheckCircle, Clock, Utensils, X, Bell, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
 
 export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
+  // Kunci scroll background halaman saat modal tiket terbuka di HP
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    const originalWidth = document.body.style.width;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.width = '100%';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.width = originalWidth;
+    };
+  }, []);
+
   if (!order) return null;
 
   const handleDownloadQris = async (e) => {
@@ -38,7 +52,7 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
     .trim();
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-espresso/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden overscroll-contain bg-espresso/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
       <div className="relative w-full max-w-md bg-cream border-2 border-espresso rounded-2xl shadow-tactile-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Top vintage banner */}
@@ -153,9 +167,9 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
           <div className="p-3 bg-cream-100 border-2 border-espresso rounded-xl text-xs space-y-1.5">
             <span className="font-black text-espresso block mb-1">Rincian Menu:</span>
             {order.items.map((it, idx) => (
-              <div key={idx} className="flex justify-between font-bold text-espresso">
-                <span>{it.qty}× {it.name}</span>
-                <span>{formatRupiah(it.price * it.qty)}</span>
+              <div key={idx} className="flex justify-between font-bold text-espresso gap-2">
+                <span className="truncate min-w-0">{it.qty}× {it.name}</span>
+                <span className="shrink-0">{formatRupiah(it.price * it.qty)}</span>
               </div>
             ))}
             <div className="border-t border-espresso/20 pt-1.5 flex justify-between font-black text-sm text-caramel">

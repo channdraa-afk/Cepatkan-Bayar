@@ -44,6 +44,13 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+  width: 100%;
+  overscroll-behavior-x: none;
+}
+
 /* Custom retro scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

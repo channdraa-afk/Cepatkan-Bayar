@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   X, ClipboardList, Utensils, Clock, 
   ChevronRight, ShoppingBag, Sparkles 
@@ -12,13 +12,27 @@ export default function CustomerOrdersModal({
   myOrders = [],
   onSelectOrder
 }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    const originalWidth = document.body.style.width;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.width = '100%';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.width = originalWidth;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const activeOrders = myOrders.filter(o => o.status === 'pending' || o.status === 'cooking');
   const pastOrders = myOrders.filter(o => o.status === 'completed' || o.status === 'cancelled');
 
   return (
-    <div className="fixed inset-0 z-50 bg-espresso/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-espresso/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-hidden overscroll-contain">
       <div className="relative w-full max-w-lg bg-cream border-2 border-espresso rounded-2xl shadow-tactile-lg flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
