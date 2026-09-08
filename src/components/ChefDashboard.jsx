@@ -342,6 +342,7 @@ export default function ChefDashboard({
                     </div>
 
                     {/* Laporan Status Pengantaran Chef ke Kasir */}
+                    {/* Laporan Status Pengantaran Chef ke Kasir */}
                     <div className="my-2.5 p-3 rounded-2xl border-2 border-espresso bg-cream-100/90 shadow-tactile-sm space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-black text-espresso flex items-center gap-1.5">
@@ -349,12 +350,12 @@ export default function ChefDashboard({
                           <span>Laporan Pengantaran ke Kasir:</span>
                         </span>
                         {order.is_chef_delivered ? (
-                          <span className="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-md border border-espresso shadow-tactile-sm animate-pulse">
+                          <span className="text-[10px] font-black bg-purple-600 text-white px-2 py-0.5 rounded-md border border-espresso shadow-tactile-sm animate-pulse">
                             Sudah Diantar ✓
                           </span>
                         ) : (
                           <span className="text-[10px] font-black bg-amber-200 text-amber-950 px-2 py-0.5 rounded-md border border-espresso">
-                            Belum Diantar (Di Meja Stand)
+                            Belum Diantar (Siap di Stand)
                           </span>
                         )}
                       </div>
@@ -370,14 +371,14 @@ export default function ChefDashboard({
                               : 'bg-cream text-espresso/60 border-espresso/30 hover:bg-cream-200'
                           }`}
                         >
-                          <span>🏠 Di Meja Stand</span>
+                          <span>⏳ Belum Diantar</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => handleUpdateDelivery(order.id, true, order.chef_note || 'Sudah diantar langsung oleh Chef')}
                           className={`py-2 px-2.5 rounded-xl text-xs font-black border-2 transition-all flex items-center justify-center gap-1.5 ${
                             order.is_chef_delivered
-                              ? 'bg-emerald-600 text-white border-espresso shadow-tactile-sm'
+                              ? 'bg-purple-600 text-white border-espresso shadow-tactile-sm'
                               : 'bg-cream text-espresso/60 border-espresso/30 hover:bg-cream-200'
                           }`}
                         >
@@ -405,28 +406,28 @@ export default function ChefDashboard({
                     </div>
                   </div>
 
-                  {/* Tombol Aksi Utama Chef (2 Opsi: Taruh di Meja Stand vs Sudah Diantar) */}
+                  {/* Tombol Aksi Utama Chef (2 Opsi: Taruh di Stand vs Langsung Diantar) */}
                   <div className="pt-3 border-t-2 border-espresso mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
                       type="button"
                       disabled={completingId === order.id}
                       onClick={() => handleChefComplete(order, false)}
                       className="py-3 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white border-2 border-espresso shadow-tactile hover:brightness-105 active:translate-y-0.5 transition-all disabled:opacity-50"
-                      title="Selesai masak dan taruh di meja stand (belum diantar)"
+                      title="Selesai masak dan makanan siap di stand (belum diantar)"
                     >
                       {completingId === order.id ? (
                         <RefreshCw className="w-4 h-4 animate-spin" />
                       ) : (
                         <CheckCircle2 className="w-4 h-4" />
                       )}
-                      <span>🍲 Selesai (Di Meja Stand)</span>
+                      <span>🍲 Selesai Masak (Siap Saji)</span>
                     </button>
 
                     <button
                       type="button"
                       disabled={completingId === order.id}
                       onClick={() => handleChefComplete(order, true)}
-                      className="py-3 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 bg-caramel hover:brightness-110 text-cream border-2 border-espresso shadow-tactile hover:brightness-105 active:translate-y-0.5 transition-all disabled:opacity-50"
+                      className="py-3 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 bg-purple-700 hover:bg-purple-800 text-white border-2 border-espresso shadow-tactile hover:brightness-105 active:translate-y-0.5 transition-all disabled:opacity-50"
                       title="Selesai masak dan pesanan sudah diantar langsung ke pembeli"
                     >
                       {completingId === order.id ? (
@@ -434,7 +435,7 @@ export default function ChefDashboard({
                       ) : (
                         <span>🛵</span>
                       )}
-                      <span>Selesai & SUDAH Diantar ✓</span>
+                      <span>🛵 Selesai & SUDAH Diantar ✓</span>
                     </button>
                   </div>
 
@@ -468,10 +469,10 @@ export default function ChefDashboard({
                       </span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${
                         order.is_chef_delivered
-                          ? 'bg-emerald-100 text-emerald-900 border-emerald-500'
-                          : 'bg-amber-100 text-amber-950 border-amber-500'
+                          ? 'bg-purple-100 text-purple-900 border-purple-400'
+                          : 'bg-amber-100 text-amber-950 border-amber-400'
                       }`}>
-                        {order.is_chef_delivered ? '🛵 Sudah Diantar' : '🏠 Di Meja Stand'}
+                        {order.is_chef_delivered ? '🛵 Sudah Diantar' : '⏳ Belum Diantar'}
                       </span>
                     </div>
                     <p className="text-xs text-espresso/70 font-bold truncate mt-0.5">
@@ -499,7 +500,7 @@ export default function ChefDashboard({
                     onClick={() => handleUpdateDelivery(order.id, !order.is_chef_delivered, order.chef_note || '')}
                     className="text-[11px] font-black text-caramel hover:underline"
                   >
-                    {order.is_chef_delivered ? 'Ubah jadi 🏠 Di Meja Stand' : 'Tandai jadi 🛵 Sudah Diantar'}
+                    {order.is_chef_delivered ? 'Ubah jadi ⏳ Belum Diantar' : 'Tandai jadi 🛵 Sudah Diantar'}
                   </button>
                 </div>
               </div>
