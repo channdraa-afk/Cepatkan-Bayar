@@ -222,8 +222,16 @@ export const fetchOrders = async () => {
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false });
-      if (!error && data) {
-        return data.map(parseOrder);
+      if (!error && Array.isArray(data)) {
+        const parsed = data.map(parseOrder);
+        // Selalu perbarui cache lokal dengan data cloud Supabase yang valid
+        // Ini otomatis membersihkan order hantu lokal dan mencegah kedip-kedip saat polling
+        try {
+          localStorage.setItem(LOCAL_STORAGE_ORDERS_KEY, JSON.stringify(parsed));
+        } catch (e) {
+          console.warn('Gagal simpan cache orders lokal:', e);
+        }
+        return parsed;
       }
     } catch (err) {
       console.warn('Gagal fetch Supabase orders, fallback ke lokal:', err);
@@ -233,13 +241,42 @@ export const fetchOrders = async () => {
 };
 
 export const createOrder = async ({ customerName, customerClass, customerPhone, deliveryType, notes, items, totalPrice, paymentMethod }) => {
-  // Hitung nomor antrean berbasis nilai maksimum yang pernah ada
-  const currentOrders = await fetchOrders();
-  const maxExistingNum = currentOrders.reduce((max, o) => {
+  const supabase = getSupabase();
+  let maxExistingNum = 0;
+
+  // 1. Cek langsung ke database cloud Supabase untuk nomor urut tertinggi
+  if (supabase) {
+    try {
+      const { data: dbOrders, error } = await supabase
+        .from('orders')
+        .select('order_number');
+      if (!error && Array.isArray(dbOrders)) {
+        for (const o of dbOrders) {
+          const raw = (o.order_number || '').replace(/[^0-9]/g, '');
+          const num = parseInt(raw, 10);
+          if (!isNaN(num) && num > maxExistingNum) maxExistingNum = num;
+        }
+      }
+    } catch (err) {
+      console.warn('Gagal query max order_number Supabase:', err);
+    }
+  }
+
+  // 2. Periksa juga data lokal perangkat jika ada pesanan offline yang belum sinkron
+  const localOrders = getLocalOrders();
+  for (const o of localOrders) {
     const raw = (o.order_number || '').replace(/[^0-9]/g, '');
     const num = parseInt(raw, 10);
-    return !isNaN(num) && num > max ? num : max;
-  }, 0);
+    if (!isNaN(num) && num > maxExistingNum) maxExistingNum = num;
+  }
+
+  // 3. PENGAMAN NOMOR URUT (Safety Baseline):
+  // Bazar sudah berjalan dan pesanan di database cloud sudah mencapai minimal #015.
+  // Dengan pengaman ini, nomor antrean TIDAK AKAN PERNAH ter-reset kembali ke #001.
+  if (maxExistingNum < 15) {
+    maxExistingNum = 15;
+  }
+
   const nextNum = maxExistingNum + 1;
   const orderNumber = `#${String(nextNum).padStart(3, '0')}`;
 
@@ -285,10 +322,9 @@ export const createOrder = async ({ customerName, customerClass, customerPhone, 
     }
   }
 
-  const supabase = getSupabase();
+  // Simpan ke Supabase Cloud
   if (supabase) {
     try {
-      // Payload yang sesuai dengan kolom tabel orders Supabase
       const supabasePayload = {
         id: newOrder.id,
         order_number: newOrder.order_number,
@@ -303,14 +339,17 @@ export const createOrder = async ({ customerName, customerClass, customerPhone, 
         created_at: newOrder.created_at
       };
       const { error } = await supabase.from('orders').insert([supabasePayload]);
-      if (error) console.error('Supabase insert error:', error);
+      if (error) {
+        console.error('Supabase insert error:', error);
+      }
     } catch (err) {
       console.warn('Gagal insert order Supabase:', err);
     }
   }
 
-  const localOrders = getLocalOrders();
-  const updatedOrders = [newOrder, ...localOrders];
+  // Simpan ke localStorage lokal agar offline tetap aman
+  const currentLocal = getLocalOrders();
+  const updatedOrders = [newOrder, ...currentLocal.filter(o => o.id !== newOrder.id)];
   localStorage.setItem(LOCAL_STORAGE_ORDERS_KEY, JSON.stringify(updatedOrders));
 
   if (channel) {

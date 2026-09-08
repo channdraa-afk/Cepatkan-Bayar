@@ -70,8 +70,28 @@ export default function App() {
 
   const prevOrderStatusesRef = useRef({});
   const isOrderCreatingRef = useRef(false);
+  const isPollingRef = useRef(false);
   const knownOrderIdsRef = useRef(new Set());
   const prevCookingIdsRef = useRef(new Set());
+
+  // Sanitasi data lokal: bersihkan pesanan hantu lokal #001 yang tidak sengaja terbuat saat offline
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('cepatkanbayar_orders_local');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const cleaned = parsed.filter(o => {
+          if (o.order_number === '#001' && !o.customer_name?.toLowerCase().includes('zivana')) {
+            return false;
+          }
+          return true;
+        });
+        if (cleaned.length !== parsed.length) {
+          localStorage.setItem('cepatkanbayar_orders_local', JSON.stringify(cleaned));
+        }
+      }
+    } catch {}
+  }, []);
 
   // Handle Login Role (Kasir vs Chef) yang Awet & Anti-Logout saat Refresh Browser
   const handleLoginSuccess = (role = 'cashier') => {
@@ -182,44 +202,62 @@ export default function App() {
     }
   }, [toastAlert]);
 
-  // Background Auto-Polling Cerdas:
-  // 1. Laptop Kasir & HP Chef: Polling senyap tiap 3 detik agar pesanan baru langsung muncul & bel klining berbunyi otomatis
-  // 2. HP Pembeli: Polling senyap tiap 4 detik jika ada pesanan aktif agar status racik & selesai auto-update tanpa refresh
+  // Background Auto-Polling Cerdas & Stabil:
+  // 1. Laptop Kasir & HP Chef: Polling senyap tiap 3.5 detik agar pesanan baru langsung muncul & bel klining berbunyi otomatis
+  // 2. HP Pembeli: Polling senyap tiap 4.5 detik jika ada pesanan aktif agar status racik & selesai auto-update tanpa refresh
   useEffect(() => {
     const shouldPoll = isCashier || isChef || activeMyOrders.length > 0;
     if (!shouldPoll) return;
 
-    const pollInterval = (isCashier || isChef) ? 3000 : 4000;
+    const pollInterval = (isCashier || isChef) ? 3500 : 4500;
 
     const intervalId = setInterval(async () => {
+      if (isPollingRef.current) return;
+      isPollingRef.current = true;
       try {
         const freshOrders = await fetchOrders();
 
-        if (isCashier) {
-          const hasNewPending = freshOrders.some(
-            o => o.status === 'pending' && !knownOrderIdsRef.current.has(o.id)
-          );
-          if (hasNewPending) {
-            sound.playCashRegister();
-          }
-          knownOrderIdsRef.current = new Set(freshOrders.map(o => o.id));
+        if (!Array.isArray(freshOrders) || freshOrders.length === 0) {
+          return;
         }
 
-        if (isChef) {
-          const freshCooking = freshOrders.filter(o => o.status === 'cooking');
-          const hasNewCooking = freshCooking.some(
-            o => !prevCookingIdsRef.current.has(o.id)
-          );
-          if (hasNewCooking && prevCookingIdsRef.current.size > 0) {
-            sound.playCashRegister();
-            setToastAlert('👨‍🍳 Ada pesanan baru yang siap diracik!');
+        setOrders(prevOrders => {
+          // CEGAH KEDIP-KEDIP / FLICKERING:
+          // Jika koneksi sempat lemot dan mengembalikan data lokal yang lebih sedikit
+          // dari data yang sedang tampil di layar (misal 1 pesanan lokal vs 14 pesanan Supabase),
+          // tolak timpaan tersebut agar pesanan tidak hilang-muncul!
+          if (prevOrders.length > 2 && freshOrders.length < prevOrders.length) {
+            return prevOrders;
           }
-          prevCookingIdsRef.current = new Set(freshCooking.map(o => o.id));
-        }
 
-        setOrders(freshOrders);
+          if (isCashier) {
+            const hasNewPending = freshOrders.some(
+              o => o.status === 'pending' && !knownOrderIdsRef.current.has(o.id)
+            );
+            if (hasNewPending && knownOrderIdsRef.current.size > 0) {
+              sound.playCashRegister();
+            }
+            knownOrderIdsRef.current = new Set(freshOrders.map(o => o.id));
+          }
+
+          if (isChef) {
+            const freshCooking = freshOrders.filter(o => o.status === 'cooking');
+            const hasNewCooking = freshCooking.some(
+              o => !prevCookingIdsRef.current.has(o.id)
+            );
+            if (hasNewCooking && prevCookingIdsRef.current.size > 0) {
+              sound.playCashRegister();
+              setToastAlert('👨‍🍳 Ada pesanan baru yang siap diracik!');
+            }
+            prevCookingIdsRef.current = new Set(freshCooking.map(o => o.id));
+          }
+
+          return freshOrders;
+        });
       } catch (err) {
         console.warn('Auto-polling orders warning:', err);
+      } finally {
+        isPollingRef.current = false;
       }
     }, pollInterval);
 
@@ -305,16 +343,24 @@ export default function App() {
     }
   };
 
-  // Submit Order (Customer) - Dilindungi Mutex Hardware Anti-Spam
+  // Submit Order (Customer & Cashier Walk-in) - Dilindungi Mutex Hardware Anti-Spam
   const handleSubmitOrder = async (orderPayload) => {
     if (isOrderCreatingRef.current) return;
     isOrderCreatingRef.current = true;
     try {
       const created = await createOrder(orderPayload);
-      const updatedIds = saveCustomerOrderId(created.id);
-      if (updatedIds) setMyOrderIds(updatedIds);
+      
+      // Jika pesanan dibuat oleh pembeli sendiri di HP mereka:
+      if (!isCashier) {
+        const updatedIds = saveCustomerOrderId(created.id);
+        if (updatedIds) setMyOrderIds(updatedIds);
+        setActiveCustomerOrder(created);
+      } else {
+        // Jika kasir stand yang memasukkan pesanan walk-in langsung di laptop stand:
+        setToastAlert(`✅ Pesanan walk-in ${created.order_number} (${created.customer_name}) berhasil dicatat!`);
+      }
+
       setCart([]);
-      setActiveCustomerOrder(created);
       await loadData();
 
       // Sound and celebratory confetti
@@ -329,6 +375,9 @@ export default function App() {
       } catch {
         // Confetti optional
       }
+    } catch (err) {
+      console.error('Gagal membuat pesanan:', err);
+      setToastAlert('⚠️ Gagal membuat pesanan. Silakan periksa koneksi internet.');
     } finally {
       isOrderCreatingRef.current = false;
     }
