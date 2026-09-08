@@ -271,10 +271,10 @@ export const createOrder = async ({ customerName, customerClass, customerPhone, 
   }
 
   // 3. PENGAMAN NOMOR URUT (Safety Baseline):
-  // Bazar sudah berjalan dan pesanan di database cloud sudah mencapai minimal #015.
+  // Bazar sudah berjalan dan pesanan di database cloud sudah mencapai minimal #016 (Bu Anya).
   // Dengan pengaman ini, nomor antrean TIDAK AKAN PERNAH ter-reset kembali ke #001.
-  if (maxExistingNum < 15) {
-    maxExistingNum = 15;
+  if (maxExistingNum < 16) {
+    maxExistingNum = 16;
   }
 
   const nextNum = maxExistingNum + 1;
@@ -312,17 +312,21 @@ export const createOrder = async ({ customerName, customerClass, customerPhone, 
     created_at: new Date().toISOString()
   };
 
-  // Kurangi stok untuk tiap menu yang dipesan
-  for (const item of items) {
+  // Kurangi stok menu secara efisien (fetch menu cukup 1x saja, jangan loop fetch)
+  try {
     const menus = await fetchMenus();
-    const targetMenu = menus.find(m => m.id === item.id);
-    if (targetMenu) {
-      const remainingStock = Math.max(0, targetMenu.stock - item.qty);
-      await updateMenuStock(item.id, remainingStock);
+    for (const item of items) {
+      const targetMenu = menus.find(m => m.id === item.id);
+      if (targetMenu) {
+        const remainingStock = Math.max(0, targetMenu.stock - item.qty);
+        updateMenuStock(item.id, remainingStock).catch(e => console.warn('Stok update async warning:', e));
+      }
     }
+  } catch (err) {
+    console.warn('Gagal sinkron stok menu:', err);
   }
 
-  // Simpan ke Supabase Cloud
+  // Simpan ke Supabase Cloud dengan proteksi timeout agar tidak pernah stuck loading
   if (supabase) {
     try {
       const supabasePayload = {
@@ -338,12 +342,16 @@ export const createOrder = async ({ customerName, customerClass, customerPhone, 
         change_amount: newOrder.change_amount,
         created_at: newOrder.created_at
       };
-      const { error } = await supabase.from('orders').insert([supabasePayload]);
+      
+      const insertPromise = supabase.from('orders').insert([supabasePayload]);
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase insert timeout')), 4500));
+      
+      const { error } = await Promise.race([insertPromise, timeoutPromise]);
       if (error) {
         console.error('Supabase insert error:', error);
       }
     } catch (err) {
-      console.warn('Gagal insert order Supabase:', err);
+      console.warn('Gagal insert order Supabase (fallback ke lokal):', err);
     }
   }
 
