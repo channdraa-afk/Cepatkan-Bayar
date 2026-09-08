@@ -68,8 +68,18 @@ export default function SalesReportModal({
   });
   const topMenus = Object.values(menuStatsMap).sort((a, b) => b.quantity - a.quantity);
 
-  // Filter list transaksi yang ditampilkan
-  const filteredOrders = completedOrders.filter(o => {
+  // Urutkan seluruh transaksi selesai dari nomor order terbawah (dimulai dari 1 / #001 ke atas)
+  const sortedCompletedOrders = [...completedOrders].sort((a, b) => {
+    const numA = parseInt((a.order_number || '').replace(/[^0-9]/g, ''), 10);
+    const numB = parseInt((b.order_number || '').replace(/[^0-9]/g, ''), 10);
+    if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+      return numA - numB; // Ascending: nomor 1, 2, 3...
+    }
+    return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+  });
+
+  // Filter list transaksi yang ditampilkan (dari nomor 1 dst)
+  const filteredOrders = sortedCompletedOrders.filter(o => {
     // Filter pembayaran
     if (paymentFilter === 'Tunai' && o.payment_method !== 'Tunai') return false;
     if (paymentFilter === 'QRIS' && o.payment_method !== 'QRIS') return false;
@@ -527,38 +537,8 @@ export default function SalesReportModal({
               )}
             </div>
 
-            {/* KOLOM TANDA TANGAN RESMI (PRINT & PDF) */}
-            <div className="pt-8 border-t-2 border-espresso mt-8 grid grid-cols-3 gap-4 text-center text-xs text-espresso">
-              <div>
-                <p className="font-bold text-[11px] text-espresso/70">Dibuat Oleh,</p>
-                <p className="font-black text-xs mt-0.5">Kasir / Bendahara Stand</p>
-                <div className="h-16 flex items-end justify-center">
-                  <div className="w-32 border-b border-dashed border-espresso" />
-                </div>
-                <p className="text-[10px] text-espresso/60 mt-1">( ........................................ )</p>
-              </div>
-
-              <div>
-                <p className="font-bold text-[11px] text-espresso/70">Mengetahui,</p>
-                <p className="font-black text-xs mt-0.5">Ketua Stand Lunar Cafe</p>
-                <div className="h-16 flex items-end justify-center">
-                  <div className="w-32 border-b border-dashed border-espresso" />
-                </div>
-                <p className="text-[10px] text-espresso/60 mt-1">( ........................................ )</p>
-              </div>
-
-              <div>
-                <p className="font-bold text-[11px] text-espresso/70">Disetujui Oleh,</p>
-                <p className="font-black text-xs mt-0.5">Guru Pembimbing / Wali Kelas</p>
-                <div className="h-16 flex items-end justify-center">
-                  <div className="w-32 border-b border-dashed border-espresso" />
-                </div>
-                <p className="text-[10px] text-espresso/60 mt-1">( ........................................ )</p>
-              </div>
-            </div>
-
-            {/* Catatan Kaki */}
-            <div className="text-center pt-2 text-[10px] text-espresso/50 border-t border-espresso/10">
+            {/* Catatan Kaki Dokumen Resmi */}
+            <div className="text-center pt-4 text-[10px] text-espresso/50 border-t border-espresso/20">
               Dicetak otomatis melalui Aplikasi Kasir Lunar Cafe • {currentDateStr} pukul {currentTimeStr} WIB
             </div>
 
