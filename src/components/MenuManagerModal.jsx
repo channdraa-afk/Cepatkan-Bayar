@@ -13,7 +13,7 @@ export default function MenuManagerModal({
   onCreateMenu,
   onUpdateMenu,
   onDeleteMenu,
-  onClearAllMenus
+  _onClearAllMenus
 }) {
   const [activeTab, setActiveTab] = useState('list'); // 'list' | 'add' | 'edit'
   const [editingId, setEditingId] = useState(null);
@@ -30,7 +30,6 @@ export default function MenuManagerModal({
   const [useUrlMode, setUseUrlMode] = useState(false);
 
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
@@ -151,12 +150,6 @@ export default function MenuManagerModal({
     sound.playRemove();
     await onDeleteMenu(id);
     setConfirmDeleteId(null);
-  };
-
-  const handleClearAll = async () => {
-    sound.playRemove();
-    await onClearAllMenus();
-    setShowClearConfirm(false);
   };
 
   return (

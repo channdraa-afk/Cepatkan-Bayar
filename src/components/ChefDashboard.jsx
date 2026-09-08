@@ -5,6 +5,16 @@ import {
 } from 'lucide-react';
 import { sound } from '../lib/audio';
 
+// Helper format durasi waktu berlalu (Pure Function)
+const getTimeElapsed = (dateString) => {
+  if (!dateString) return '';
+  const diffMs = Date.now() - new Date(dateString).getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 1) return 'Baru saja';
+  if (diffMinutes === 1) return '1 menit lalu';
+  return `${diffMinutes} menit lalu`;
+};
+
 export default function ChefDashboard({
   orders = [],
   onUpdateStatus,
@@ -87,16 +97,6 @@ export default function ChefDashboard({
       setCompletingId(null);
       setTimeout(() => setToastMsg(null), 4000);
     }
-  };
-
-  // Format durasi waktu berlalu
-  const getTimeElapsed = (dateString) => {
-    if (!dateString) return '';
-    const diffMs = Date.now() - new Date(dateString).getTime();
-    const diffMinutes = Math.floor(diffMs / 60000);
-    if (diffMinutes < 1) return 'Baru saja';
-    if (diffMinutes === 1) return '1 menit lalu';
-    return `${diffMinutes} menit lalu`;
   };
 
   return (

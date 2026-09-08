@@ -671,7 +671,7 @@ export default function App() {
                 Pesan Lezat di Lunar Cafe
               </h1>
               <p className="text-xs sm:text-sm text-espresso/80 font-bold max-w-md mx-auto leading-relaxed">
-                Pilih menu favoritmu, cek sisa stok *realtime*, dan ambil pesananmu saat nomor antrean dipanggil!
+                Pilih menu favoritmu, cek sisa stok <strong className="text-caramel font-black">real-time</strong>, dan ambil pesananmu saat nomor antrean dipanggil!
               </p>
             </div>
 

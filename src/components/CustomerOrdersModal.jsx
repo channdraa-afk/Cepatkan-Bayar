@@ -52,7 +52,7 @@ export default function CustomerOrdersModal({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-espresso/70 font-bold">Pantau proses racik & status antrean secara *live*</p>
+              <p className="text-xs text-espresso/70 font-bold">Pantau proses racik & status antrean secara <strong className="text-caramel font-black">live</strong></p>
             </div>
           </div>
           <button

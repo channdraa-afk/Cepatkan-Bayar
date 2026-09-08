@@ -24,14 +24,11 @@ export default function CashierDashboard({
   onOpenQrModal,
   onOpenFinancial,
   onDeleteOrder,
-  onClearAllOrders
+  _onClearAllOrders
 }) {
   const [activeTab, setActiveTab] = useState('active'); // 'active' | 'completed' | 'cancelled' | 'all'
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
   const [confirmCancelId, setConfirmCancelId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-  const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [toastMsg, setToastMsg] = useState(null);
   const [isWaModalOpen, setIsWaModalOpen] = useState(false);
   const [isSalesReportOpen, setIsSalesReportOpen] = useState(false);
@@ -188,17 +185,6 @@ export default function CashierDashboard({
     setConfirmDeleteId(null);
     setToastMsg(`Pesanan telah dihapus dari database.`);
     setTimeout(() => setToastMsg(null), 4000);
-  };
-
-  // Reset / Hapus semua riwayat pesanan
-  const handleClearAll = async () => {
-    sound.playRemove();
-    if (onClearAllOrders) {
-      await onClearAllOrders();
-    }
-    setConfirmClearAll(false);
-    setToastMsg(`Semua riwayat pesanan berhasil dibersihkan! Antrean kembali ke #001.`);
-    setTimeout(() => setToastMsg(null), 5000);
   };
 
   return (

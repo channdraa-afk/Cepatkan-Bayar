@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Printer, Share2, Copy, Check, FileText, 
-  TrendingUp, Wallet, Banknote, QrCode, Award, 
-  Search, Calendar, Clock, User, Coffee, CheckCircle2, Download
+  TrendingUp, Banknote, QrCode, Award, 
+  Search, Coffee, CheckCircle2, Download
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';

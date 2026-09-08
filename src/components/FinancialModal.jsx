@@ -29,14 +29,13 @@ export default function FinancialModal({
   orders = [],
   onCreateExpense,
   onDeleteExpense,
-  onClearAllExpenses
+  _onClearAllExpenses
 }) {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Bahan Baku');
   const [amountRaw, setAmountRaw] = useState('');
   const [notes, setNotes] = useState('');
   const [selectedFilterCategory, setSelectedFilterCategory] = useState('Semua');
-  const [confirmClear, setConfirmClear] = useState(false);
   const [copiedReport, setCopiedReport] = useState(false);
 
   if (!isOpen) return null;
@@ -111,12 +110,6 @@ export default function FinancialModal({
   const handleDelete = async (id) => {
     sound.playRemove();
     await onDeleteExpense(id);
-  };
-
-  const handleResetAll = async () => {
-    sound.playRemove();
-    await onClearAllExpenses();
-    setConfirmClear(false);
   };
 
   // Salin ringkasan ke clipboard untuk laporan WhatsApp kelompok

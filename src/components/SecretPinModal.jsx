@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Lock, X, Delete, Utensils } from 'lucide-react';
 import { sound } from '../lib/audio';
 
@@ -14,8 +14,8 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
 
   const sha256 = async (str) => {
     try {
-      const utf8 = new TextEncoder().encode(str);
-      const hashBuffer = await window.crypto.subtle.digest('SHA-256', utf8);
+      const msgBuffer = new TextEncoder().encode(str);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     } catch {
@@ -23,7 +23,7 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
     }
   };
 
-  const verifyPin = async (candidate) => {
+  const verifyPin = useCallback(async (candidate) => {
     // 1. Cek apakah PIN Chef (29012010)
     if (candidate === CHEF_PIN) {
       sound.playComplete();
@@ -51,9 +51,9 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
     setTimeout(() => {
       setPin('');
     }, 700);
-  };
+  }, [onSuccess]);
 
-  const handleKeyPress = (num) => {
+  const handleKeyPress = useCallback((num) => {
     sound.playClick();
     setPin((prev) => {
       if (prev.length < 8) {
@@ -68,13 +68,13 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
       }
       return prev;
     });
-  };
+  }, [verifyPin]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     sound.playRemove();
     setPin((prev) => prev.slice(0, -1));
     setError(false);
-  };
+  }, []);
 
   const handleClear = () => {
     sound.playClick();
@@ -98,7 +98,7 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, handleKeyPress, handleDelete]);
 
   if (!isOpen) return null;
 

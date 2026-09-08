@@ -167,7 +167,16 @@ Agar pembeli bisa memesan dari HP mereka sendiri dan pesanannya langsung masuk k
 
 ---
 
-## 🔒 Praktik & Protokol Keamanan (Zero Data Leak)
+## 🔒 Praktik & Protokol Keamanan & Privasi (Zero Data Leak)
+
+> [!IMPORTANT]
+> ### 🛡️ PEMBERITAHUAN PRIVASI REPOSITORI PUBLIK ("Isi Sesuai Milik Anda Sendiri")
+> Repositori ini bersifat terbuka (*open-source template*). Seluruh URL database, API Key, token bot WhatsApp Fonnte, serta kontak pribadi pengembang **TIDAK PERNAH** dimasukkan ke dalam repositori ini dan telah diamankan dengan ketat melalui `.gitignore`.
+> 
+> Bagi siapa pun yang mengkloning atau ingin menjalankan proyek ini:
+> 1. Salin berkas template [`.env.example`](./.env.example) menjadi `.env`.
+> 2. **Isilah variabel lingkungan dengan kredensial & API token milik Anda sendiri.**
+> 3. Jangan pernah melakukan *commit* atau mengunggah berkas `.env` asli ke GitHub publik!
 
 Proyek ini telah diaudit keamanannya dengan standar ketat:
 1. **Pencegahan Kebocoran File `.env`**:
