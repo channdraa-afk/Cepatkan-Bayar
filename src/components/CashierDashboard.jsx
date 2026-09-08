@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { 
   CheckCircle2, Utensils, Package, QrCode, 
   AlertCircle, Sparkles, Calculator,
-  MessageCircle, Ban, Trash2, Bot, RefreshCw
+  MessageCircle, Ban, Trash2, Bot, RefreshCw,
+  Banknote, Clock
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
@@ -67,8 +68,8 @@ export default function CashierDashboard({
   // Centang Selesai Dilayani & Kirim Notifikasi WA "Selamat Menikmati"
   const handleCompleteOrder = async (order) => {
     sound.playComplete();
-    // Jika pesanan QRIS dan belum divalidasi, otomatis validasi saat diselesaikan
-    if (order.payment_method === 'QRIS' && !order.is_qris_validated && onValidatePayment) {
+    // Jika pesanan (QRIS / Tunai) belum divalidasi, otomatis validasi saat diselesaikan
+    if (!order.is_paid && onValidatePayment) {
       await onValidatePayment(order.id, true);
     }
     await onUpdateStatus(order.id, 'completed');
@@ -448,7 +449,7 @@ export default function CashierDashboard({
                           {order.payment_method}
                         </span>
 
-                        {/* Badge Validasi Khusus QRIS di Header */}
+                        {/* Badge Validasi QRIS di Header */}
                         {order.payment_method === 'QRIS' && (
                           order.is_qris_validated ? (
                             <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-900 border border-emerald-500 flex items-center gap-1 shadow-tactile-sm">
@@ -459,6 +460,26 @@ export default function CashierDashboard({
                             <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-950 border border-amber-500 flex items-center gap-1 animate-pulse shadow-tactile-sm">
                               <AlertCircle className="w-3 h-3 text-amber-600" />
                               <span>Belum Valid</span>
+                            </span>
+                          )
+                        )}
+
+                        {/* Badge Validasi & Timing Tunai di Header */}
+                        {order.payment_method === 'Tunai' && (
+                          order.is_cash_paid ? (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-900 border border-emerald-500 flex items-center gap-1 shadow-tactile-sm">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Lunas ✓</span>
+                            </span>
+                          ) : order.cash_timing === 'upfront' ? (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-200 text-amber-950 border border-amber-600 flex items-center gap-1 animate-pulse shadow-tactile-sm">
+                              <AlertCircle className="w-3 h-3 text-amber-700" />
+                              <span>Bayar di Meja Kasir</span>
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-orange-100 text-orange-950 border border-orange-500 flex items-center gap-1 shadow-tactile-sm">
+                              <Clock className="w-3 h-3 text-orange-600" />
+                              <span>Bayar Pas Ambil (COD)</span>
                             </span>
                           )
                         )}
@@ -512,11 +533,33 @@ export default function CashierDashboard({
 
                   {/* Banner Notifikasi jika Pesanan Sudah Selesai Dimasak Chef */}
                   {isReady && (
-                    <div className="mt-2 p-2 bg-emerald-100 border border-emerald-500 rounded-xl flex items-center justify-between gap-2 shadow-tactile-sm">
-                      <div className="flex items-center gap-1.5 text-emerald-950 font-black text-xs">
+                    <div className={`mt-2 p-2.5 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-tactile-sm ${
+                      order.payment_method === 'Tunai' && !order.is_cash_paid
+                        ? 'bg-amber-100 border-2 border-amber-600 animate-pulse'
+                        : 'bg-emerald-100 border border-emerald-500'
+                    }`}>
+                      <div className="flex items-center gap-1.5 font-black text-xs">
                         <span className="text-sm">🍲</span>
-                        <span>Sudah Selesai Dimasak Chef! Siap diantar/diambil.</span>
+                        <span className={order.payment_method === 'Tunai' && !order.is_cash_paid ? 'text-amber-950' : 'text-emerald-950'}>
+                          {order.payment_method === 'Tunai' && !order.is_cash_paid ? (
+                            <>⚠️ <strong>TAGIH TUNAI {formatRupiah(order.total_price)}</strong> saat makanan diserahkan!</>
+                          ) : (
+                            <>Sudah Selesai Dimasak Chef! Siap diantar/diambil.</>
+                          )}
+                        </span>
                       </div>
+                      {order.payment_method === 'Tunai' && !order.is_cash_paid && onValidatePayment && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sound.playComplete();
+                            onValidatePayment(order.id, true);
+                          }}
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-black border border-espresso shadow-tactile-sm shrink-0 active:translate-y-0.5"
+                        >
+                          Terima Uang ({formatRupiah(order.total_price)}) ✓
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -601,6 +644,62 @@ export default function CashierDashboard({
                             >
                               <CheckCircle2 className="w-4 h-4" />
                               <span>Validasi Pembayaran (Sudah Bayar ✓)</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Tombol & Status Validasi Pembayaran Tunai */}
+                  {order.payment_method === 'Tunai' && (
+                    <div className="mt-3">
+                      {order.is_cash_paid ? (
+                        <div className="p-2.5 rounded-xl bg-emerald-50 border-2 border-emerald-600 flex items-center justify-between shadow-tactile-sm">
+                          <div className="flex items-center gap-2 text-emerald-900 font-black text-xs">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>Uang Tunai Sudah Diterima (Lunas ✓)</span>
+                          </div>
+                          {!isCompleted && !isCancelled && onValidatePayment && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                sound.playClick();
+                                onValidatePayment(order.id, false);
+                              }}
+                              className="text-[10px] text-espresso/60 hover:text-rose-600 font-bold underline shrink-0 ml-2"
+                              title="Batalkan validasi jika salah klik"
+                            >
+                              Batal
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-2.5 rounded-xl bg-amber-50 border-2 border-amber-500 space-y-2 shadow-tactile-sm">
+                          <div className="flex items-center justify-between text-xs font-black text-amber-900">
+                            <span className="flex items-center gap-1.5">
+                              <Banknote className="w-4 h-4 text-amber-600 shrink-0" />
+                              <span>
+                                {order.cash_timing === 'upfront' 
+                                  ? 'Pelanggan Bayar di Meja Kasir' 
+                                  : 'Tagih Uang Tunai Saat Pesanan Siap'}
+                              </span>
+                            </span>
+                            <span className="text-[10px] bg-amber-200 text-amber-950 px-1.5 py-0.5 rounded font-black">
+                              Belum Bayar
+                            </span>
+                          </div>
+                          {!isCompleted && !isCancelled && onValidatePayment && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                sound.playComplete();
+                                onValidatePayment(order.id, true);
+                              }}
+                              className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 border-2 border-espresso shadow-tactile transition-all"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>Terima Uang Tunai ({formatRupiah(order.total_price)} - Lunas ✓)</span>
                             </button>
                           )}
                         </div>

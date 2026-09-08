@@ -173,10 +173,28 @@ const parseOrder = (order) => {
   // Cek apakah pembayaran QRIS sudah divalidasi kasir
   const isQrisValidated = Boolean(
     order.qris_validated ||
-    order.payment_status === 'paid' ||
+    (order.payment_method === 'QRIS' && order.payment_status === 'paid') ||
     notes.includes('[QRIS_LUNAS]') ||
     (order.payment_method === 'QRIS' && order.status === 'completed')
   );
+
+  // Cek apakah pembayaran Tunai sudah lunas diterima kasir
+  const isCashPaid = Boolean(
+    order.cash_paid ||
+    (order.payment_method === 'Tunai' && order.payment_status === 'paid') ||
+    notes.includes('[TUNAI_LUNAS]') ||
+    (order.payment_method === 'Tunai' && order.status === 'completed')
+  );
+
+  // Status pembayaran universal (QRIS maupun Tunai)
+  const isPaid = order.payment_method === 'QRIS' ? isQrisValidated : isCashPaid;
+
+  // Preferensi timing bayar tunai:
+  // - 'upfront' : Bayar Langsung di Kasir (Di Awal) lalu ditinggal pergi
+  // - 'on_pickup' : Bayar Nanti (Pas Ambil di Kasir / Pas Diantar)
+  const cashTiming = notes.includes('[BAYAR_DI_AWAL]')
+    ? 'upfront'
+    : (notes.includes('[BAYAR_PAS_AMBIL]') ? 'on_pickup' : (order.cash_timing || 'on_pickup'));
 
   // Cek apakah notifikasi WhatsApp pesanan siap sudah dikirim
   const isWaNotified = Boolean(
@@ -190,6 +208,9 @@ const parseOrder = (order) => {
     .replace(/\[🚶 Ambil di Kasir\]/g, '')
     .replace(/\[WA:\s*[^\]]+\]/g, '')
     .replace(/\[QRIS_LUNAS\]/g, '')
+    .replace(/\[TUNAI_LUNAS\]/g, '')
+    .replace(/\[BAYAR_DI_AWAL\]/g, '')
+    .replace(/\[BAYAR_PAS_AMBIL\]/g, '')
     .replace(/\[WA_NOTIFIED\]/g, '')
     .trim();
 
@@ -199,9 +220,14 @@ const parseOrder = (order) => {
     delivery_type: deliveryType,
     display_notes: displayNotes,
     is_qris_validated: isQrisValidated,
+    is_cash_paid: isCashPaid,
+    is_paid: isPaid,
+    cash_timing: cashTiming,
     is_wa_notified: isWaNotified
   };
 };
+
+const parseOrderNumber = (on) => parseInt((on || '').replace(/[^0-9]/g, ''), 10);
 
 // ==================== ORDERS ====================
 export const getLocalOrders = () => {
@@ -222,57 +248,43 @@ export const fetchOrders = async () => {
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false });
-      if (!error && Array.isArray(data)) {
-        const parsed = data.map(parseOrder);
-        // Selalu perbarui cache lokal dengan data cloud Supabase yang valid
-        // Ini otomatis membersihkan order hantu lokal dan mencegah kedip-kedip saat polling
-        try {
-          localStorage.setItem(LOCAL_STORAGE_ORDERS_KEY, JSON.stringify(parsed));
-        } catch (e) {
-          console.warn('Gagal simpan cache orders lokal:', e);
-        }
-        return parsed;
+      
+      if (!error && data) {
+        return data.map(parseOrder);
       }
     } catch (err) {
-      console.warn('Gagal fetch Supabase orders, fallback ke lokal:', err);
+      console.warn('Supabase fetch error, fallback ke local storage:', err);
     }
   }
   return getLocalOrders();
 };
 
-export const createOrder = async ({ customerName, customerClass, customerPhone, deliveryType, notes, items, totalPrice, paymentMethod }) => {
+export const createOrder = async ({
+  customerName,
+  customerClass,
+  customerPhone,
+  deliveryType = 'pickup',
+  notes,
+  items,
+  totalPrice,
+  paymentMethod = 'Tunai',
+  cashTiming = 'on_pickup',
+  isCashPaid = false
+}) => {
   const supabase = getSupabase();
+  
+  // 1. Ambil seluruh pesanan yang ada dari memory / local / cloud
+  const existingOrders = await fetchOrders();
+
+  // 2. Cari nomor antrean tertinggi yang pernah ada
   let maxExistingNum = 0;
-
-  // 1. Cek langsung ke database cloud Supabase untuk nomor urut tertinggi
-  if (supabase) {
-    try {
-      const { data: dbOrders, error } = await supabase
-        .from('orders')
-        .select('order_number');
-      if (!error && Array.isArray(dbOrders)) {
-        for (const o of dbOrders) {
-          const raw = (o.order_number || '').replace(/[^0-9]/g, '');
-          const num = parseInt(raw, 10);
-          if (!isNaN(num) && num > maxExistingNum) maxExistingNum = num;
-        }
-      }
-    } catch (err) {
-      console.warn('Gagal query max order_number Supabase:', err);
-    }
-  }
-
-  // 2. Periksa juga data lokal perangkat jika ada pesanan offline yang belum sinkron
-  const localOrders = getLocalOrders();
-  for (const o of localOrders) {
-    const raw = (o.order_number || '').replace(/[^0-9]/g, '');
-    const num = parseInt(raw, 10);
+  for (const o of existingOrders) {
+    const num = parseOrderNumber(o.order_number);
     if (!isNaN(num) && num > maxExistingNum) maxExistingNum = num;
   }
 
   // 3. PENGAMAN NOMOR URUT (Safety Baseline):
   // Bazar sudah berjalan dan pesanan di database cloud sudah mencapai minimal #016 (Bu Anya).
-  // Dengan pengaman ini, nomor antrean TIDAK AKAN PERNAH ter-reset kembali ke #001.
   if (maxExistingNum < 16) {
     maxExistingNum = 16;
   }
@@ -288,11 +300,23 @@ export const createOrder = async ({ customerName, customerClass, customerPhone, 
   // Format Nama: misal "Chandra (XI RPL 2)"
   const formattedCustomerName = cleanClass ? `${cleanName} (${cleanClass})` : cleanName;
 
-  // Format Catatan: "[🛵 Diantar ke Kelas] [WA: 081234567890] Catatan..."
+  // Format Catatan: "[🛵 Diantar ke Kelas] [WA: 081234567890] [BAYAR_PAS_AMBIL] Catatan..."
   const deliveryBadgeText = isDelivery ? '[🛵 Diantar ke Kelas]' : '[🚶 Ambil di Kasir]';
   const waBadgeText = cleanPhone ? `[WA: ${cleanPhone}]` : '';
+  
+  let cashBadgeText = '';
+  if (paymentMethod === 'Tunai') {
+    if (isCashPaid) {
+      cashBadgeText = '[TUNAI_LUNAS]';
+    } else if (cashTiming === 'upfront') {
+      cashBadgeText = '[BAYAR_DI_AWAL]';
+    } else {
+      cashBadgeText = '[BAYAR_PAS_AMBIL]';
+    }
+  }
+
   const rawNotes = (notes || '').trim();
-  const fullNotes = `${deliveryBadgeText} ${waBadgeText} ${rawNotes}`.trim();
+  const fullNotes = [deliveryBadgeText, waBadgeText, cashBadgeText, rawNotes].filter(Boolean).join(' ').trim();
 
   const newOrder = {
     id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -306,6 +330,9 @@ export const createOrder = async ({ customerName, customerClass, customerPhone, 
     items: items,
     total_price: totalPrice,
     payment_method: paymentMethod || 'Tunai',
+    cash_timing: cashTiming,
+    cash_paid: isCashPaid,
+    payment_status: isCashPaid ? 'paid' : 'pending',
     status: 'pending',
     cash_given: null,
     change_amount: null,
@@ -411,28 +438,46 @@ export const updateOrderStatus = async (orderId, newStatus, extraData = {}) => {
   return updated;
 };
 
-export const toggleQrisValidation = async (orderId, isValidated) => {
+export const togglePaymentValidation = async (orderId, isValidated) => {
   const allOrders = await fetchOrders();
   const target = allOrders.find(o => o.id === orderId);
   if (!target) return;
 
   let currentNotes = target.notes || '';
-  if (isValidated) {
-    if (!currentNotes.includes('[QRIS_LUNAS]')) {
-      currentNotes = `${currentNotes} [QRIS_LUNAS]`.trim();
+  const isQris = target.payment_method === 'QRIS';
+
+  if (isQris) {
+    if (isValidated) {
+      if (!currentNotes.includes('[QRIS_LUNAS]')) {
+        currentNotes = `${currentNotes} [QRIS_LUNAS]`.trim();
+      }
+    } else {
+      currentNotes = currentNotes.replace(/\[QRIS_LUNAS\]/g, '').trim();
     }
   } else {
-    currentNotes = currentNotes.replace(/\[QRIS_LUNAS\]/g, '').trim();
+    // Pembayaran Tunai
+    if (isValidated) {
+      if (!currentNotes.includes('[TUNAI_LUNAS]')) {
+        currentNotes = `${currentNotes} [TUNAI_LUNAS]`.trim();
+      }
+      currentNotes = currentNotes.replace(/\[BAYAR_PAS_AMBIL\]/g, '').replace(/\[BAYAR_DI_AWAL\]/g, '').trim();
+    } else {
+      currentNotes = currentNotes.replace(/\[TUNAI_LUNAS\]/g, '').trim();
+    }
   }
 
   const extraData = {
     notes: currentNotes,
-    qris_validated: isValidated,
+    qris_validated: isQris ? isValidated : Boolean(target.qris_validated),
+    cash_paid: !isQris ? isValidated : Boolean(target.cash_paid),
     payment_status: isValidated ? 'paid' : 'pending'
   };
 
   return await updateOrderStatus(orderId, target.status, extraData);
 };
+
+export const toggleQrisValidation = togglePaymentValidation;
+export const toggleCashValidation = togglePaymentValidation;
 
 export const markOrderWaNotified = async (orderId) => {
   const allOrders = await fetchOrders();

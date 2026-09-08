@@ -206,7 +206,32 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
           {/* Petunjuk Pembayaran */}
           <div className="p-3 bg-cream-50 border border-espresso/30 rounded-xl text-xs text-espresso/80 leading-relaxed text-center">
             {order.payment_method === 'Tunai' ? (
-              <p>💵 Siapkan uang tunai <strong>{formatRupiah(order.total_price)}</strong> dan bayar ke kasir saat mengambil pesanan.</p>
+              order.is_cash_paid ? (
+                <div className="p-2.5 bg-emerald-100 border-2 border-emerald-600 rounded-xl text-emerald-950 text-xs font-black flex items-center justify-center gap-2 shadow-tactile-sm">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span>Uang Tunai Telah Diterima Kasir (Lunas ✓)</span>
+                </div>
+              ) : order.cash_timing === 'upfront' ? (
+                <div className="p-2.5 bg-amber-100 border-2 border-amber-500 rounded-xl text-amber-950 text-xs text-center shadow-tactile-sm space-y-1">
+                  <span className="font-black text-amber-900 flex items-center justify-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 animate-pulse" />
+                    <span>Menunggu Pembayaran di Meja Kasir</span>
+                  </span>
+                  <p className="text-[11px] font-bold">
+                    Silakan menuju ke meja kasir sekarang untuk menyerahkan uang tunai <strong>{formatRupiah(order.total_price)}</strong> yaa!
+                  </p>
+                </div>
+              ) : (
+                <div className="p-2.5 bg-orange-100 border-2 border-orange-400 rounded-xl text-orange-950 text-xs text-center shadow-tactile-sm space-y-1">
+                  <span className="font-black text-orange-900 flex items-center justify-center gap-1.5">
+                    <Clock className="w-4 h-4 text-orange-700 shrink-0" />
+                    <span>Bayar Pas Ambil (COD)</span>
+                  </span>
+                  <p className="text-[11px] font-bold">
+                    💵 Pesananmu sedang diproses. Siapkan uang tunai <strong>{formatRupiah(order.total_price)}</strong> saat mengambil pesanan di kasir / saat kurir tiba.
+                  </p>
+                </div>
+              )
             ) : (
               <div className="space-y-2.5">
                 {/* Status Validasi Pembayaran QRIS dari Kasir */}

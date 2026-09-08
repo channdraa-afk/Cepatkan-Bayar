@@ -121,13 +121,27 @@ export default function CustomerOrdersModal({
                                 }`}>
                                   {isDelivery ? '🛵 Diantar ke Kelas' : '🚶 Ambil di Kasir'}
                                 </span>
-                                {order.payment_method === 'QRIS' && (
+                                {order.payment_method === 'QRIS' ? (
                                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-black border ${
                                     order.is_qris_validated
                                       ? 'bg-emerald-100 text-emerald-900 border-emerald-500'
                                       : 'bg-amber-100 text-amber-950 border-amber-500'
                                   }`}>
                                     {order.is_qris_validated ? 'QRIS Lunas ✓' : 'QRIS Belum Valid'}
+                                  </span>
+                                ) : (
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-black border ${
+                                    order.is_cash_paid
+                                      ? 'bg-emerald-100 text-emerald-900 border-emerald-500'
+                                      : order.cash_timing === 'upfront'
+                                      ? 'bg-amber-100 text-amber-950 border-amber-500'
+                                      : 'bg-orange-100 text-orange-950 border-orange-500'
+                                  }`}>
+                                    {order.is_cash_paid 
+                                      ? 'Tunai Lunas ✓' 
+                                      : order.cash_timing === 'upfront'
+                                      ? 'Tunai (Bayar di Kasir)'
+                                      : 'Tunai (Bayar Pas Ambil)'}
                                   </span>
                                 )}
                               </div>

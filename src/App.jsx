@@ -836,6 +836,7 @@ export default function App() {
         onUpdateQty={handleUpdateQty}
         onClearCart={() => setCart([])}
         onSubmitOrder={handleSubmitOrder}
+        isCashier={isCashier}
       />
 
       <OrderTrackerModal

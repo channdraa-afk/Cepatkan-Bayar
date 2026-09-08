@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, ShoppingBag, Trash2, ArrowRight, Banknote, QrCode, AlertCircle, Plus, Minus, Download } from 'lucide-react';
+import { X, ShoppingBag, Trash2, ArrowRight, Banknote, QrCode, AlertCircle, Plus, Minus, Download, Clock, CheckCircle2 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
 
@@ -10,7 +10,8 @@ export default function CartDrawer({
   menus,
   onUpdateQty,
   onClearCart,
-  onSubmitOrder
+  onSubmitOrder,
+  isCashier = false
 }) {
   const [customerName, setCustomerName] = useState('');
   const [customerClass, setCustomerClass] = useState('');
@@ -18,6 +19,8 @@ export default function CartDrawer({
   const [deliveryType, setDeliveryType] = useState('pickup'); // 'pickup' | 'delivery'
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Tunai');
+  const [cashTiming, setCashTiming] = useState('on_pickup'); // 'on_pickup' (COD) | 'upfront' (bayar langsung di kasir)
+  const [cashierMarkPaid, setCashierMarkPaid] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const isSubmittingRef = useRef(false);
@@ -137,6 +140,8 @@ export default function CartDrawer({
         deliveryType,
         notes: notes.trim(),
         paymentMethod,
+        cashTiming: paymentMethod === 'Tunai' ? cashTiming : 'on_pickup',
+        isCashPaid: paymentMethod === 'Tunai' ? (isCashier ? cashierMarkPaid : false) : false,
         items: cartItems.map(i => ({
           id: i.id,
           name: i.name,
@@ -152,6 +157,8 @@ export default function CartDrawer({
       setCustomerPhone('');
       setDeliveryType('pickup');
       setNotes('');
+      setCashTiming('on_pickup');
+      setCashierMarkPaid(true);
       onClose();
     } catch {
       setErrorMsg('Gagal mengirim pesanan. Silakan coba lagi.');
@@ -408,6 +415,89 @@ export default function CartDrawer({
                       <QrCode className="w-4 h-4" /> QRIS Stand
                     </button>
                   </div>
+
+                  {paymentMethod === 'Tunai' && (
+                    <div className="mt-3 p-3 bg-white border-2 border-espresso rounded-2xl shadow-tactile-sm space-y-2.5 animate-in fade-in duration-150">
+                      <p className="text-xs font-black text-espresso flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <Banknote className="w-4 h-4 text-caramel" />
+                          <span>Kapan Mau Bayar Tunai?</span>
+                        </span>
+                        <span className="text-[10px] font-bold text-espresso/60">Pilih salah satu</span>
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sound.playClick();
+                            setCashTiming('on_pickup');
+                          }}
+                          className={`p-2.5 rounded-xl border-2 border-espresso text-left transition-all ${
+                            cashTiming === 'on_pickup'
+                              ? 'bg-amber-100 border-amber-900 shadow-tactile'
+                              : 'bg-cream-50 hover:bg-cream-100 opacity-70'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-black text-espresso flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-amber-700" />
+                              <span>Bayar Pas Ambil (COD)</span>
+                            </span>
+                            {cashTiming === 'on_pickup' && (
+                              <span className="text-[9px] font-black bg-amber-400 px-1.5 py-0.5 rounded border border-espresso">Dipilih</span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-espresso/80 font-bold leading-tight">
+                            Bayar tunai saat pesanan siap diambil di kasir / saat diantar ke kelas.
+                          </p>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sound.playClick();
+                            setCashTiming('upfront');
+                          }}
+                          className={`p-2.5 rounded-xl border-2 border-espresso text-left transition-all ${
+                            cashTiming === 'upfront'
+                              ? 'bg-emerald-100 border-emerald-900 shadow-tactile'
+                              : 'bg-cream-50 hover:bg-cream-100 opacity-70'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-black text-espresso flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                              <span>Bayar Langsung di Kasir</span>
+                            </span>
+                            {cashTiming === 'upfront' && (
+                              <span className="text-[9px] font-black bg-emerald-400 px-1.5 py-0.5 rounded border border-espresso">Dipilih</span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-espresso/80 font-bold leading-tight">
+                            Saya sekarang mau ke kasir serahkan uang, lalu ditinggal tunggu/jalan.
+                          </p>
+                        </button>
+                      </div>
+
+                      {isCashier && (
+                        <div className="pt-2 border-t border-espresso/20 flex items-center justify-between">
+                          <span className="text-[11px] font-black text-espresso">Status Kasir:</span>
+                          <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={cashierMarkPaid}
+                              onChange={(e) => setCashierMarkPaid(e.target.checked)}
+                              className="w-4 h-4 text-emerald-600 rounded border-2 border-espresso focus:ring-emerald-500"
+                            />
+                            <span className="text-xs font-black text-emerald-800">
+                              Uang sudah diterima (Lunas ✓)
+                            </span>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {paymentMethod === 'QRIS' && (
                     <div className="mt-3 p-3 bg-white border-2 border-espresso rounded-2xl text-center shadow-tactile-sm space-y-2.5">

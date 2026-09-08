@@ -93,7 +93,16 @@ export function createPickupMessage(order) {
   const customerClass = order.customer_class ? ` (${order.customer_class})` : '';
   const orderNumber = order.order_number || '-';
   const totalPrice = formatRupiah(order.total_price || 0);
-  const paymentMethod = order.payment_method || 'Tunai';
+  let paymentText = paymentMethod;
+  if (paymentMethod === 'QRIS') {
+    paymentText = order.is_qris_validated ? 'QRIS - LUNAS ✓' : 'QRIS';
+  } else if (paymentMethod === 'Tunai') {
+    if (order.is_cash_paid) {
+      paymentText = 'Tunai - LUNAS ✓';
+    } else {
+      paymentText = 'Tunai - ⚠️ Mohon siapkan uang pas yaa';
+    }
+  }
 
   const itemsList = Array.isArray(order.items) && order.items.length > 0
     ? order.items.map(item => `  • ${item.qty}× ${item.name}`).join('\n')
@@ -111,7 +120,7 @@ export function createPickupMessage(order) {
       `📋 *Rincian Pesanan #${orderNumber}:*`,
       itemsList,
       '',
-      `💰 *Total:* ${totalPrice} (${paymentMethod})`,
+      `💰 *Total:* ${totalPrice} (${paymentText})`,
       `📍 *Tujuan Antar:* ${order.customer_class || 'Kelas/Ruangan Kamu'}`,
       '',
       '🛵 *Tim kurir stand kami sedang meluncur ke kelasmu, mohon ditunggu di kelas yaa kak.*',
@@ -128,7 +137,7 @@ export function createPickupMessage(order) {
     `📋 *Rincian Pesanan #${orderNumber}:*`,
     itemsList,
     '',
-    `💰 *Total:* ${totalPrice} (${paymentMethod})`,
+    `💰 *Total:* ${totalPrice} (${paymentText})`,
     '',
     '🚶 *Pesananmu sudah siap di meja Lunar Cafe, yuk langsung ke stand untuk mengambilnya yaa.*',
     '',
