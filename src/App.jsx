@@ -17,7 +17,7 @@ import {
   fetchMenus, fetchOrders, createOrder, updateMenuStock, 
   quickAddStock, updateOrderStatus, subscribeToData,
   createMenu, updateMenu, deleteMenu, clearAllMenus,
-  deleteOrder, clearAllOrders, toggleQrisValidation,
+  deleteOrder, clearAllOrders, toggleQrisValidation, updateOrderChefDelivery,
   fetchExpenses, createExpense, deleteExpense, clearAllExpenses,
   getCustomerOrderIds, saveCustomerOrderId, getVoteUrl
 } from './lib/storage';
@@ -435,6 +435,11 @@ export default function App() {
     await loadData();
   };
 
+  const handleUpdateChefDelivery = async (orderId, isDelivered, chefNote) => {
+    await updateOrderChefDelivery(orderId, isDelivered, chefNote);
+    await loadData();
+  };
+
   // Cashier Order Deletion (Testing Data)
   const handleDeleteOrder = async (orderId) => {
     await deleteOrder(orderId);
@@ -523,6 +528,7 @@ export default function App() {
           <ChefDashboard
             orders={orders}
             onUpdateStatus={handleUpdateOrderStatus}
+            onUpdateChefDelivery={handleUpdateChefDelivery}
             onExitChef={handleLogoutChef}
           />
         ) : isCashier && cashierView === 'dashboard' ? (
@@ -532,6 +538,7 @@ export default function App() {
             menus={menus}
             onUpdateStatus={handleUpdateOrderStatus}
             onValidatePayment={handleValidatePayment}
+            onUpdateChefDelivery={handleUpdateChefDelivery}
             onOpenStockManager={() => setIsStockModalOpen(true)}
             onOpenMenuManager={() => setIsMenuManagerOpen(true)}
             onOpenQrModal={() => setIsQrModalOpen(true)}

@@ -16,6 +16,7 @@ export default function CashierDashboard({
   menus,
   onUpdateStatus,
   onValidatePayment,
+  onUpdateChefDelivery,
   onOpenStockManager,
   onOpenMenuManager,
   onOpenQrModal,
@@ -493,6 +494,19 @@ export default function CashierDashboard({
                             🚶 Ambil di Kasir
                           </span>
                         )}
+
+                        {/* Status Laporan Pengantaran dari Chef */}
+                        {order.is_chef_delivered ? (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-600 text-white border border-espresso shadow-tactile-sm flex items-center gap-1 animate-pulse">
+                            <span>🛵</span>
+                            <span>Sudah Diantar Chef</span>
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-950 border border-amber-500 flex items-center gap-1 shadow-tactile-sm">
+                            <span>🏠</span>
+                            <span>Di Meja Stand</span>
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm font-black text-espresso mt-1">
                         {order.customer_name}
@@ -533,35 +547,85 @@ export default function CashierDashboard({
 
                   {/* Banner Notifikasi jika Pesanan Sudah Selesai Dimasak Chef */}
                   {isReady && (
-                    <div className={`mt-2 p-2.5 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-tactile-sm ${
+                    <div className={`mt-2 p-2.5 rounded-xl border flex flex-col gap-2 shadow-tactile-sm ${
                       order.payment_method === 'Tunai' && !order.is_cash_paid
                         ? 'bg-amber-100 border-2 border-amber-600 animate-pulse'
+                        : order.is_chef_delivered
+                        ? 'bg-sky-100 border-2 border-sky-600'
                         : 'bg-emerald-100 border border-emerald-500'
                     }`}>
-                      <div className="flex items-center gap-1.5 font-black text-xs">
-                        <span className="text-sm">🍲</span>
-                        <span className={order.payment_method === 'Tunai' && !order.is_cash_paid ? 'text-amber-950' : 'text-emerald-950'}>
-                          {order.payment_method === 'Tunai' && !order.is_cash_paid ? (
-                            <>⚠️ <strong>TAGIH TUNAI {formatRupiah(order.total_price)}</strong> saat makanan diserahkan!</>
-                          ) : (
-                            <>Sudah Selesai Dimasak Chef! Siap diantar/diambil.</>
-                          )}
-                        </span>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 font-black text-xs">
+                          <span className="text-base">{order.is_chef_delivered ? '🛵' : '🍲'}</span>
+                          <span className={order.payment_method === 'Tunai' && !order.is_cash_paid ? 'text-amber-950' : order.is_chef_delivered ? 'text-sky-950' : 'text-emerald-950'}>
+                            {order.is_chef_delivered ? (
+                              <>
+                                <strong>SUDAH DIANTAR OLEH CHEF!</strong>
+                                {order.chef_note ? ` ("${order.chef_note}")` : ''}
+                              </>
+                            ) : (
+                              <>Sudah Selesai Dimasak Chef! (Ada di Meja Stand / Belum Diantar).</>
+                            )}
+                          </span>
+                        </div>
+
+                        {order.payment_method === 'Tunai' && !order.is_cash_paid && onValidatePayment && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              sound.playComplete();
+                              onValidatePayment(order.id, true);
+                            }}
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-black border border-espresso shadow-tactile-sm shrink-0 active:translate-y-0.5"
+                          >
+                            Terima Uang ({formatRupiah(order.total_price)}) ✓
+                          </button>
+                        )}
                       </div>
-                      {order.payment_method === 'Tunai' && !order.is_cash_paid && onValidatePayment && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sound.playComplete();
-                            onValidatePayment(order.id, true);
-                          }}
-                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-black border border-espresso shadow-tactile-sm shrink-0 active:translate-y-0.5"
-                        >
-                          Terima Uang ({formatRupiah(order.total_price)}) ✓
-                        </button>
+
+                      {order.payment_method === 'Tunai' && !order.is_cash_paid && (
+                        <div className="text-[11px] font-black text-amber-900 bg-amber-200/80 px-2 py-1 rounded-lg border border-amber-400">
+                          ⚠️ {order.is_chef_delivered 
+                            ? `Makanan sudah diantar tapi TUNAI BELUM DITERIMA! Jangan lupa tagih ${formatRupiah(order.total_price)}!`
+                            : `TAGIH TUNAI ${formatRupiah(order.total_price)} sebelum menyerahkan makanan!`}
+                        </div>
                       )}
                     </div>
                   )}
+
+                  {/* Laporan Status Pengantaran & Catatan Chef */}
+                  <div className="my-2 p-2.5 rounded-xl border border-espresso/30 bg-cream-100/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{order.is_chef_delivered ? '🛵' : '🏠'}</span>
+                      <div>
+                        <span className="font-black text-espresso">
+                          Status Antar: {order.is_chef_delivered ? 'Sudah Diantar Chef' : 'Di Meja Stand (Belum Diantar)'}
+                        </span>
+                        {order.chef_note && (
+                          <p className="text-[11px] font-bold text-sky-800">
+                            Catatan Chef: "{order.chef_note}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {!isCompleted && !isCancelled && onUpdateChefDelivery && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sound.playClick();
+                          onUpdateChefDelivery(
+                            order.id, 
+                            !order.is_chef_delivered, 
+                            order.chef_note || (!order.is_chef_delivered ? 'Diantar oleh Kasir' : '')
+                          );
+                        }}
+                        className="text-[10px] font-black text-caramel hover:underline shrink-0 bg-cream px-2 py-1 rounded-md border border-espresso/30 shadow-tactile-sm"
+                      >
+                        {order.is_chef_delivered ? 'Ubah jadi 🏠 Di Meja Stand' : 'Tandai jadi 🛵 Sudah Diantar'}
+                      </button>
+                    )}
+                  </div>
 
                   {/* Catatan Meja / Khusus */}
                   {(() => {
@@ -571,7 +635,7 @@ export default function CashierDashboard({
                     if (!cleanNote) return null;
                     return (
                       <div className="my-2 p-2 bg-cream-100 rounded-lg border border-espresso/20 text-xs font-bold text-espresso/90 flex items-center gap-1.5">
-                        <span className="text-caramel font-black">Catatan:</span> {cleanNote}
+                        <span className="text-caramel font-black">Catatan Pembeli:</span> {cleanNote}
                       </div>
                     );
                   })()}

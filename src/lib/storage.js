@@ -196,6 +196,21 @@ const parseOrder = (order) => {
     ? 'upfront'
     : (notes.includes('[BAYAR_PAS_AMBIL]') ? 'on_pickup' : (order.cash_timing || 'on_pickup'));
 
+  // Cek apakah sudah diantar langsung oleh chef / tim dapur
+  const isChefDelivered = Boolean(
+    order.is_chef_delivered ||
+    notes.includes('[CHEF_DIANTAR]')
+  );
+
+  // Catatan pengantaran dari chef
+  let chefNote = order.chef_note || '';
+  if (!chefNote && notes.includes('[CHEF_NOTE:')) {
+    const match = notes.match(/\[CHEF_NOTE:\s*([^\]]+)\]/);
+    if (match) {
+      chefNote = match[1].trim();
+    }
+  }
+
   // Cek apakah notifikasi WhatsApp pesanan siap sudah dikirim
   const isWaNotified = Boolean(
     order.is_wa_notified ||
@@ -211,6 +226,8 @@ const parseOrder = (order) => {
     .replace(/\[TUNAI_LUNAS\]/g, '')
     .replace(/\[BAYAR_DI_AWAL\]/g, '')
     .replace(/\[BAYAR_PAS_AMBIL\]/g, '')
+    .replace(/\[CHEF_DIANTAR\]/g, '')
+    .replace(/\[CHEF_NOTE:\s*[^\]]+\]/g, '')
     .replace(/\[WA_NOTIFIED\]/g, '')
     .trim();
 
@@ -223,6 +240,8 @@ const parseOrder = (order) => {
     is_cash_paid: isCashPaid,
     is_paid: isPaid,
     cash_timing: cashTiming,
+    is_chef_delivered: isChefDelivered,
+    chef_note: chefNote,
     is_wa_notified: isWaNotified
   };
 };
@@ -478,6 +497,37 @@ export const togglePaymentValidation = async (orderId, isValidated) => {
 
 export const toggleQrisValidation = togglePaymentValidation;
 export const toggleCashValidation = togglePaymentValidation;
+
+export const updateOrderChefDelivery = async (orderId, isDelivered, chefNote = '') => {
+  const allOrders = await fetchOrders();
+  const target = allOrders.find(o => o.id === orderId);
+  if (!target) return;
+
+  let currentNotes = target.notes || '';
+
+  // Bersihkan tag chef lama
+  currentNotes = currentNotes
+    .replace(/\[CHEF_DIANTAR\]/g, '')
+    .replace(/\[CHEF_NOTE:\s*[^\]]+\]/g, '')
+    .trim();
+
+  if (isDelivered) {
+    currentNotes = `${currentNotes} [CHEF_DIANTAR]`.trim();
+  }
+
+  const cleanNote = (chefNote || '').trim();
+  if (cleanNote) {
+    currentNotes = `${currentNotes} [CHEF_NOTE: ${cleanNote}]`.trim();
+  }
+
+  const extraData = {
+    notes: currentNotes,
+    is_chef_delivered: isDelivered,
+    chef_note: cleanNote
+  };
+
+  return await updateOrderStatus(orderId, target.status, extraData);
+};
 
 export const markOrderWaNotified = async (orderId) => {
   const allOrders = await fetchOrders();

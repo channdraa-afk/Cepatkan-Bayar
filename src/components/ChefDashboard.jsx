@@ -8,6 +8,7 @@ import { sound } from '../lib/audio';
 export default function ChefDashboard({
   orders = [],
   onUpdateStatus,
+  onUpdateChefDelivery,
   onExitChef
 }) {
   const [activeTab, setActiveTab] = useState('cooking'); // 'cooking' | 'history'
@@ -45,15 +46,41 @@ export default function ChefDashboard({
     }));
   };
 
-  // Tombol Selesai Dibuat oleh Chef (Status menjadi 'ready', kasir sebagai Super User yang menyelesaikan transaksi akhir)
-  const handleChefComplete = async (order) => {
+  // Update Status Pengantaran oleh Chef (Bisa dilakukan kapan saja secara realtime)
+  const handleUpdateDelivery = async (orderId, isDelivered, note) => {
+    sound.playClick();
+    try {
+      if (onUpdateChefDelivery) {
+        await onUpdateChefDelivery(orderId, isDelivered, note);
+      }
+      setToastMsg(isDelivered 
+        ? '🛵 Laporan dikirim ke kasir: Pesanan ditandai SUDAH DIANTAR oleh Chef!' 
+        : '🏠 Laporan dikirim ke kasir: Pesanan ditandai ADA DI MEJA STAND (Belum Diantar).');
+    } catch {
+      setToastMsg('Gagal mengirim update status.');
+    } finally {
+      setTimeout(() => setToastMsg(null), 3500);
+    }
+  };
+
+  // Tombol Selesai Dibuat oleh Chef dengan Pilihan Antar
+  const handleChefComplete = async (order, isDeliveredDirectly) => {
     sound.playComplete();
     setCompletingId(order.id);
     try {
+      if (onUpdateChefDelivery) {
+        await onUpdateChefDelivery(
+          order.id, 
+          isDeliveredDirectly, 
+          order.chef_note || (isDeliveredDirectly ? 'Sudah diantar langsung oleh Chef' : '')
+        );
+      }
       if (onUpdateStatus) {
         await onUpdateStatus(order.id, 'ready');
       }
-      setToastMsg(`✅ Pesanan #${order.order_number} (${order.customer_name}) selesai dimasak! Notifikasi terkirim ke kasir untuk diantar/diambil.`);
+      setToastMsg(isDeliveredDirectly
+        ? `🛵 Pesanan #${order.order_number} selesai & dilaporkan SUDAH DIANTAR ke kasir!`
+        : `✅ Pesanan #${order.order_number} selesai dimasak & ada di MEJA STAND!`);
     } catch {
       setToastMsg('Gagal mengupdate status pesanan.');
     } finally {
@@ -313,23 +340,101 @@ export default function ChefDashboard({
                         );
                       })}
                     </div>
+
+                    {/* Laporan Status Pengantaran Chef ke Kasir */}
+                    <div className="my-2.5 p-3 rounded-2xl border-2 border-espresso bg-cream-100/90 shadow-tactile-sm space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black text-espresso flex items-center gap-1.5">
+                          <span>🛵</span>
+                          <span>Laporan Pengantaran ke Kasir:</span>
+                        </span>
+                        {order.is_chef_delivered ? (
+                          <span className="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-md border border-espresso shadow-tactile-sm animate-pulse">
+                            Sudah Diantar ✓
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-black bg-amber-200 text-amber-950 px-2 py-0.5 rounded-md border border-espresso">
+                            Belum Diantar (Di Meja Stand)
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Tombol Opsi Status Antar */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateDelivery(order.id, false, order.chef_note || '')}
+                          className={`py-2 px-2.5 rounded-xl text-xs font-black border-2 transition-all flex items-center justify-center gap-1.5 ${
+                            !order.is_chef_delivered
+                              ? 'bg-amber-300 text-amber-950 border-espresso shadow-tactile-sm'
+                              : 'bg-cream text-espresso/60 border-espresso/30 hover:bg-cream-200'
+                          }`}
+                        >
+                          <span>🏠 Di Meja Stand</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateDelivery(order.id, true, order.chef_note || 'Sudah diantar langsung oleh Chef')}
+                          className={`py-2 px-2.5 rounded-xl text-xs font-black border-2 transition-all flex items-center justify-center gap-1.5 ${
+                            order.is_chef_delivered
+                              ? 'bg-emerald-600 text-white border-espresso shadow-tactile-sm'
+                              : 'bg-cream text-espresso/60 border-espresso/30 hover:bg-cream-200'
+                          }`}
+                        >
+                          <span>🛵 Sudah Diantar</span>
+                        </button>
+                      </div>
+
+                      {/* Input Catatan Bebas Chef */}
+                      <div className="pt-0.5">
+                        <input
+                          type="text"
+                          placeholder="Tulis catatan (misal: 'Sudah diantar ke RPL 2' / 'Diambil Dani')..."
+                          defaultValue={order.chef_note || ''}
+                          onBlur={(e) => {
+                            if (e.target.value !== (order.chef_note || '')) {
+                              handleUpdateDelivery(order.id, order.is_chef_delivered, e.target.value);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') e.target.blur();
+                          }}
+                          className="w-full px-3 py-1.5 rounded-lg border-2 border-espresso bg-cream text-espresso font-bold text-xs focus:outline-none focus:ring-1 focus:ring-caramel placeholder:text-espresso/40 shadow-tactile-sm"
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Tombol Aksi Utama Chef */}
-                  <div className="pt-3 border-t-2 border-espresso mt-2">
+                  {/* Tombol Aksi Utama Chef (2 Opsi: Taruh di Meja Stand vs Sudah Diantar) */}
+                  <div className="pt-3 border-t-2 border-espresso mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
                       type="button"
                       disabled={completingId === order.id}
-                      onClick={() => handleChefComplete(order)}
-                      className="btn-tactile-success w-full py-3.5 px-4 rounded-xl text-sm font-black flex items-center justify-center gap-2 text-white shadow-tactile hover:brightness-105 active:translate-y-1 transition-all disabled:opacity-50"
-                      title="Klik untuk menyelesaikan masakan dan memberi tahu kasir serta pembeli"
+                      onClick={() => handleChefComplete(order, false)}
+                      className="py-3 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white border-2 border-espresso shadow-tactile hover:brightness-105 active:translate-y-0.5 transition-all disabled:opacity-50"
+                      title="Selesai masak dan taruh di meja stand (belum diantar)"
                     >
                       {completingId === order.id ? (
-                        <RefreshCw className="w-5 h-5 animate-spin" />
+                        <RefreshCw className="w-4 h-4 animate-spin" />
                       ) : (
-                        <CheckCircle2 className="w-5 h-5" />
+                        <CheckCircle2 className="w-4 h-4" />
                       )}
-                      <span>Pesanan Selesai Dibuat ✓</span>
+                      <span>🍲 Selesai (Di Meja Stand)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={completingId === order.id}
+                      onClick={() => handleChefComplete(order, true)}
+                      className="py-3 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 bg-caramel hover:brightness-110 text-cream border-2 border-espresso shadow-tactile hover:brightness-105 active:translate-y-0.5 transition-all disabled:opacity-50"
+                      title="Selesai masak dan pesanan sudah diantar langsung ke pembeli"
+                    >
+                      {completingId === order.id ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <span>🛵</span>
+                      )}
+                      <span>Selesai & SUDAH Diantar ✓</span>
                     </button>
                   </div>
 
@@ -350,26 +455,52 @@ export default function ChefDashboard({
             {completedOrders.map((order) => (
               <div
                 key={order.id}
-                className="card-tactile bg-cream-100/70 p-3.5 border border-espresso/30 flex items-center justify-between gap-3 opacity-80"
+                className="card-tactile bg-cream-100/90 p-3.5 border-2 border-espresso flex flex-col justify-between gap-2 shadow-tactile-sm"
               >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-black text-caramel">
-                      {order.order_number}
-                    </span>
-                    <span className="text-xs font-black text-espresso">
-                      {order.customer_name}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-black text-caramel">
+                        {order.order_number}
+                      </span>
+                      <span className="text-xs font-black text-espresso">
+                        {order.customer_name}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${
+                        order.is_chef_delivered
+                          ? 'bg-emerald-100 text-emerald-900 border-emerald-500'
+                          : 'bg-amber-100 text-amber-950 border-amber-500'
+                      }`}>
+                        {order.is_chef_delivered ? '🛵 Sudah Diantar' : '🏠 Di Meja Stand'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-espresso/70 font-bold truncate mt-0.5">
+                      {order.items && order.items.map(i => `${i.qty}× ${i.name}`).join(', ')}
+                    </p>
+                    {order.chef_note && (
+                      <p className="text-[11px] font-extrabold text-sky-800 mt-1">
+                        📝 Catatan Chef: "{order.chef_note}"
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-900 bg-emerald-100 border border-emerald-500 px-2 py-0.5 rounded-md">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Selesai
                     </span>
                   </div>
-                  <p className="text-xs text-espresso/70 font-bold truncate mt-0.5">
-                    {order.items && order.items.map(i => `${i.qty}× ${i.name}`).join(', ')}
-                  </p>
                 </div>
 
-                <div className="text-right shrink-0">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-900 bg-emerald-100 border border-emerald-500 px-2 py-0.5 rounded-md">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Selesai
-                  </span>
+                {/* Tombol Cepat Ubah Status Antar di Riwayat */}
+                <div className="pt-2 border-t border-espresso/20 flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-espresso/60">Ubah laporan antar:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateDelivery(order.id, !order.is_chef_delivered, order.chef_note || '')}
+                    className="text-[11px] font-black text-caramel hover:underline"
+                  >
+                    {order.is_chef_delivered ? 'Ubah jadi 🏠 Di Meja Stand' : 'Tandai jadi 🛵 Sudah Diantar'}
+                  </button>
                 </div>
               </div>
             ))}
