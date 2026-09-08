@@ -3,7 +3,7 @@ import {
   CheckCircle2, Utensils, Package, QrCode, 
   AlertCircle, Sparkles, Calculator,
   MessageCircle, Ban, Trash2, Bot, RefreshCw,
-  Banknote, Clock
+  Banknote, Clock, Flame
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
