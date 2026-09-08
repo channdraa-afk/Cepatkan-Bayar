@@ -43,6 +43,7 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
 
   const isPending = order.status === 'pending';
   const isCooking = order.status === 'cooking';
+  const isReady = order.status === 'ready';
   const isCompleted = order.status === 'completed';
   const isCancelled = order.status === 'cancelled';
 
@@ -113,7 +114,7 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
               <div className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
                 isPending 
                   ? 'bg-amber-100 border-amber-500 text-amber-900 font-extrabold shadow-tactile-sm' 
-                  : (isCooking || isCompleted)
+                  : (isCooking || isReady || isCompleted)
                   ? 'bg-sage-100 border-sage-600 text-sage-800 opacity-70'
                   : 'bg-cream-200/40 border-espresso/20 text-espresso/40'
               }`}>
@@ -125,7 +126,7 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
               <div className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
                 isCooking 
                   ? 'bg-caramel-100 border-caramel text-caramel-700 font-extrabold shadow-tactile-sm animate-pulse' 
-                  : isCompleted
+                  : (isReady || isCompleted)
                   ? 'bg-sage-100 border-sage-600 text-sage-800 opacity-70'
                   : 'bg-cream-200/40 border-espresso/20 text-espresso/40'
               }`}>
@@ -135,8 +136,8 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
 
               {/* Step 3: Siap Diambil / Diantar */}
               <div className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
-                isCompleted 
-                  ? 'bg-sage border-2 border-espresso text-espresso font-black shadow-tactile animate-bounce' 
+                isReady || isCompleted 
+                  ? 'bg-emerald-500 border-2 border-espresso text-white font-black shadow-tactile animate-pulse' 
                   : 'bg-cream-200/40 border-espresso/20 text-espresso/40'
               }`}>
                 <CheckCircle className="w-5 h-5 mb-1" />
@@ -150,18 +151,30 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
             {isCooking && (
               <div className="mt-3 p-2.5 bg-amber-100 border-2 border-caramel rounded-xl text-center text-xs font-black text-amber-950 flex items-center justify-center gap-1.5 animate-pulse shadow-tactile-sm">
                 <Utensils className="w-4 h-4 text-caramel shrink-0" />
-                <span>Pesananmu sedang diracik oleh tim stand! Harap ditunggu yaa 👨‍🍳✨</span>
+                <span>Pesananmu sedang diracik oleh chef di dapur! Harap ditunggu yaa 👨‍🍳✨</span>
               </div>
             )}
 
-            {/* Banner Khusus Saat Selesai */}
+            {/* Banner Khusus Saat Selesai Dimasak (Ready) */}
+            {isReady && (
+              <div className="mt-3 p-2.5 bg-emerald-100 border-2 border-emerald-600 rounded-xl text-center text-xs font-black text-emerald-950 flex items-center justify-center gap-1.5 animate-pulse shadow-tactile-sm">
+                <span className="text-base">🍲</span>
+                <span>
+                  {isDelivery 
+                    ? '🛵 Masakanmu sudah selesai dimasak oleh chef & sedang bersiap diantar!' 
+                    : '🍲 Masakanmu sudah selesai dimasak oleh chef & siap diambil di meja stand!'}
+                </span>
+              </div>
+            )}
+
+            {/* Banner Khusus Saat Selesai Dilayani (Completed) */}
             {isCompleted && (
               <div className="mt-3 p-2.5 bg-emerald-100 border-2 border-emerald-600 rounded-xl text-center text-xs font-black text-emerald-950 flex items-center justify-center gap-1.5 shadow-tactile-sm">
                 <Bell className="w-4 h-4 text-emerald-700 animate-bounce shrink-0" />
                 <span>
                   {isDelivery 
                     ? '🛵 Hore! Pesananmu sudah selesai & sedang meluncur diantar ke kelas!' 
-                    : '🥤 Hore! Pesananmu sudah siap, yuk langsung ambil di meja kasir stand!'}
+                    : '🥤 Hore! Pesananmu sudah selesai dilayani, selamat menikmati yaa!'}
                 </span>
               </div>
             )}

@@ -36,10 +36,13 @@ export default function CashierDashboard({
   // Filter Orders
   const completedOrders = orders.filter(o => o.status === 'completed');
   const cancelledOrders = orders.filter(o => o.status === 'cancelled');
-  const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'cooking');
+  // Antrean aktif mencakup pending (menunggu), cooking (dimasak), dan ready (selesai dimasak chef tapi belum lunas/diantar kasir)
+  const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'cooking' || o.status === 'ready');
 
-  // Urutan: pending dulu (perlu segera diproses), lalu cooking
+  // Urutan Cerdas: 'ready' (sudah matang dari chef) paling atas agar kasir segera mengantar/memanggil! Lalu 'pending', lalu 'cooking'.
   const sortedActiveOrders = [...activeOrders].sort((a, b) => {
+    if (a.status === 'ready' && b.status !== 'ready') return -1;
+    if (b.status === 'ready' && a.status !== 'ready') return 1;
     if (a.status === 'pending' && b.status === 'cooking') return -1;
     if (a.status === 'cooking' && b.status === 'pending') return 1;
     return new Date(a.created_at) - new Date(b.created_at);
@@ -410,6 +413,7 @@ export default function CashierDashboard({
           {displayedOrders.map((order) => {
             const isPending = order.status === 'pending';
             const isCooking = order.status === 'cooking';
+            const isReady = order.status === 'ready';
             const isCompleted = order.status === 'completed';
             const isCancelled = order.status === 'cancelled';
 
@@ -421,6 +425,8 @@ export default function CashierDashboard({
                     ? 'bg-rose-50/60 border-rose-400 opacity-75'
                     : isCompleted 
                     ? 'bg-cream-200/40 opacity-80' 
+                    : isReady
+                    ? 'bg-emerald-50/90 border-2 border-emerald-600 shadow-tactile-lg'
                     : isCooking 
                     ? 'bg-caramel-50/40 border-caramel' 
                     : 'bg-cream-50'
@@ -489,15 +495,30 @@ export default function CashierDashboard({
                         {new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                       <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black ${
+                        isReady ? 'bg-emerald-600 text-white animate-pulse shadow-tactile-sm' :
                         isPending ? 'bg-amber-200 text-amber-900' :
                         isCooking ? 'bg-caramel text-cream' :
                         isCompleted ? 'bg-sage text-espresso' :
                         'bg-rose-200 text-rose-900'
                       }`}>
-                        {isPending ? 'Menunggu' : isCooking ? 'Sedang Diracik' : isCompleted ? 'Selesai' : 'Dibatalkan'}
+                        {isReady ? '🍲 Selesai Dimasak Chef' :
+                         isPending ? 'Menunggu' :
+                         isCooking ? 'Sedang Diracik' :
+                         isCompleted ? 'Selesai' :
+                         'Dibatalkan'}
                       </span>
                     </div>
                   </div>
+
+                  {/* Banner Notifikasi jika Pesanan Sudah Selesai Dimasak Chef */}
+                  {isReady && (
+                    <div className="mt-2 p-2 bg-emerald-100 border border-emerald-500 rounded-xl flex items-center justify-between gap-2 shadow-tactile-sm">
+                      <div className="flex items-center gap-1.5 text-emerald-950 font-black text-xs">
+                        <span className="text-sm">🍲</span>
+                        <span>Sudah Selesai Dimasak Chef! Siap diantar/diambil.</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Catatan Meja / Khusus */}
                   {(() => {
@@ -661,6 +682,20 @@ export default function CashierDashboard({
                             <Utensils className="w-3.5 h-3.5" />
                             <span>Racik</span>
                           </button>
+                        )}
+
+                        {isCooking && (
+                          <span className="px-2.5 py-2 text-[11px] font-black bg-amber-100 text-amber-950 rounded-xl border border-amber-400 flex items-center gap-1 animate-pulse shadow-tactile-sm">
+                            <Utensils className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Dimasak Chef 👨‍🍳</span>
+                          </span>
+                        )}
+
+                        {isReady && (
+                          <span className="px-2.5 py-2 text-[11px] font-black bg-emerald-100 text-emerald-950 rounded-xl border border-emerald-500 flex items-center gap-1 shadow-tactile-sm">
+                            <span>🍲</span>
+                            <span>Siap Saji</span>
+                          </span>
                         )}
 
                         {/* Tombol Centang Selesai Dilayani (Bebas diklik langsung tanpa wajib kirim WA!) */}

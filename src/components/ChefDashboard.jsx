@@ -20,9 +20,9 @@ export default function ChefDashboard({
     .filter(o => o.status === 'cooking')
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at)); // FIFO: yang masuk duluan dimasak duluan
 
-  // Filter pesanan yang sudah selesai hari ini
+  // Filter pesanan yang sudah selesai dimasak oleh chef ('ready' atau 'completed')
   const completedOrders = orders
-    .filter(o => o.status === 'completed')
+    .filter(o => o.status === 'ready' || o.status === 'completed')
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   // Hitung total porsi yang sedang antre masak
@@ -45,15 +45,15 @@ export default function ChefDashboard({
     }));
   };
 
-  // Tombol Selesai Dibuat oleh Chef
+  // Tombol Selesai Dibuat oleh Chef (Status menjadi 'ready', kasir sebagai Super User yang menyelesaikan transaksi akhir)
   const handleChefComplete = async (order) => {
     sound.playComplete();
     setCompletingId(order.id);
     try {
       if (onUpdateStatus) {
-        await onUpdateStatus(order.id, 'completed');
+        await onUpdateStatus(order.id, 'ready');
       }
-      setToastMsg(`✅ Pesanan #${order.order_number} (${order.customer_name}) selesai dibuat! Status siap saji.`);
+      setToastMsg(`✅ Pesanan #${order.order_number} (${order.customer_name}) selesai dimasak! Notifikasi terkirim ke kasir untuk diantar/diambil.`);
     } catch {
       setToastMsg('Gagal mengupdate status pesanan.');
     } finally {

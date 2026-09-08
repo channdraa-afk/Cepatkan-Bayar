@@ -188,11 +188,11 @@ export default function App() {
     };
   }, [isCashier, isChef]);
 
-  // Helper data pesanan milik pelanggan di perangkat ini
+  // Helper data pesanan milik pelanggan di perangkat ini (mencakup pending, cooking, dan ready)
   const myOrders = orders.filter(o => myOrderIds.includes(o.id));
-  const activeMyOrders = myOrders.filter(o => o.status === 'pending' || o.status === 'cooking');
+  const activeMyOrders = myOrders.filter(o => o.status === 'pending' || o.status === 'cooking' || o.status === 'ready');
   const latestActiveOrder = activeMyOrders[0] || null;
-  const hasCookingOrder = activeMyOrders.some(o => o.status === 'cooking');
+  const hasCookingOrder = activeMyOrders.some(o => o.status === 'cooking' || o.status === 'ready');
   const cookingOrders = orders.filter(o => o.status === 'cooking');
 
   // Auto-dismiss toast alert
@@ -273,6 +273,8 @@ export default function App() {
         setActiveCustomerOrder(updated);
         if (updated.status === 'completed') {
           sound.playComplete();
+        } else if (updated.status === 'ready') {
+          sound.playComplete();
         } else if (updated.status === 'cooking') {
           sound.playOrderSuccess();
         }
@@ -287,6 +289,12 @@ export default function App() {
           if (order.status === 'cooking') {
             sound.playOrderSuccess();
             setToastAlert(`👨‍🍳 Pesanan #${order.order_number} sedang diracik oleh tim stand!`);
+          } else if (order.status === 'ready') {
+            sound.playComplete();
+            const isDelivery = order.delivery_type === 'delivery' || (order.notes && order.notes.includes('🛵 Diantar'));
+            setToastAlert(isDelivery
+              ? `🛵 Pesanan #${order.order_number} sudah selesai dimasak & sedang bersiap diantar!`
+              : `🍲 Pesanan #${order.order_number} sudah selesai dimasak & siap diambil di meja stand!`);
           } else if (order.status === 'completed') {
             sound.playComplete();
             try {
@@ -468,7 +476,7 @@ export default function App() {
 
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
   const cartTotalPrice = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const pendingOrdersCount = orders.filter(o => o.status === 'pending' || o.status === 'cooking').length;
+  const pendingOrdersCount = orders.filter(o => o.status === 'pending' || o.status === 'cooking' || o.status === 'ready').length;
 
   return (
     <div className="min-h-screen flex flex-col bg-cream font-nunito text-espresso selection:bg-caramel selection:text-white">
@@ -582,16 +590,24 @@ export default function App() {
                   setActiveCustomerOrder(latestActiveOrder);
                 }}
                 className={`p-3.5 sm:p-4 rounded-2xl border-2 border-espresso shadow-tactile cursor-pointer transition-all hover:brightness-105 flex items-center justify-between gap-3 animate-in slide-in-from-top-2 ${
-                  latestActiveOrder.status === 'cooking'
+                  latestActiveOrder.status === 'ready'
+                    ? 'bg-emerald-100 border-emerald-600 shadow-tactile-lg animate-pulse'
+                    : latestActiveOrder.status === 'cooking'
                     ? 'bg-amber-100/95 border-caramel shadow-tactile-lg'
                     : 'bg-cream-100/95'
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={`w-10 h-10 rounded-xl border-2 border-espresso flex items-center justify-center shrink-0 shadow-tactile-sm ${
-                    latestActiveOrder.status === 'cooking' ? 'bg-caramel text-cream' : 'bg-amber-200 text-espresso'
+                    latestActiveOrder.status === 'ready'
+                      ? 'bg-emerald-600 text-white'
+                      : latestActiveOrder.status === 'cooking'
+                      ? 'bg-caramel text-cream'
+                      : 'bg-amber-200 text-espresso'
                   }`}>
-                    {latestActiveOrder.status === 'cooking' ? (
+                    {latestActiveOrder.status === 'ready' ? (
+                      <span className="text-xl">🍲</span>
+                    ) : latestActiveOrder.status === 'cooking' ? (
                       <Utensils className="w-5 h-5 animate-pulse" />
                     ) : (
                       <Clock className="w-5 h-5 text-amber-900" />
@@ -603,11 +619,15 @@ export default function App() {
                         Antrean #{latestActiveOrder.order_number}
                       </span>
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border border-espresso ${
-                        latestActiveOrder.status === 'cooking' 
+                        latestActiveOrder.status === 'ready'
+                          ? 'bg-emerald-600 text-white animate-pulse'
+                          : latestActiveOrder.status === 'cooking' 
                           ? 'bg-caramel text-cream animate-pulse' 
                           : 'bg-amber-200 text-amber-950'
                       }`}>
-                        {latestActiveOrder.status === 'cooking' ? 'Sedang Diracik 👨‍🍳' : 'Menunggu Kasir ⏳'}
+                        {latestActiveOrder.status === 'ready' ? 'Selesai Dimasak 🍲 Siap!' :
+                         latestActiveOrder.status === 'cooking' ? 'Sedang Diracik 👨‍🍳' :
+                         'Menunggu Kasir ⏳'}
                       </span>
                       <span className="text-[10px] font-bold text-espresso/60 hidden sm:inline">
                         • {latestActiveOrder.customer_name}

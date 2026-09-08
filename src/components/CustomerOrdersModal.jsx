@@ -29,7 +29,7 @@ export default function CustomerOrdersModal({
 
   if (!isOpen) return null;
 
-  const activeOrders = myOrders.filter(o => o.status === 'pending' || o.status === 'cooking');
+  const activeOrders = myOrders.filter(o => o.status === 'pending' || o.status === 'cooking' || o.status === 'ready');
   const pastOrders = myOrders.filter(o => o.status === 'completed' || o.status === 'cancelled');
 
   return (
@@ -94,6 +94,7 @@ export default function CustomerOrdersModal({
                   <div className="space-y-3">
                     {activeOrders.map((order) => {
                       const isCooking = order.status === 'cooking';
+                      const isReady = order.status === 'ready';
                       const isDelivery = order.delivery_type === 'delivery' || 
                         (order.notes && order.notes.includes('🛵 Diantar'));
 
@@ -101,7 +102,11 @@ export default function CustomerOrdersModal({
                         <div 
                           key={order.id}
                           className={`p-3.5 rounded-xl border-2 border-espresso shadow-tactile-sm space-y-3 transition-all ${
-                            isCooking ? 'bg-amber-50/90 border-caramel' : 'bg-cream-50'
+                            isReady
+                              ? 'bg-emerald-50/90 border-emerald-600'
+                              : isCooking 
+                              ? 'bg-amber-50/90 border-caramel' 
+                              : 'bg-cream-50'
                           }`}
                         >
                           {/* Header Pesanan */}
@@ -133,7 +138,12 @@ export default function CustomerOrdersModal({
 
                             {/* Live Badge Status */}
                             <div className="text-right">
-                              {isCooking ? (
+                              {isReady ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-600 text-white border border-espresso shadow-tactile-sm animate-pulse">
+                                  <span>🍲</span>
+                                  <span>Selesai Dimasak!</span>
+                                </span>
+                              ) : isCooking ? (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-black bg-caramel text-cream border border-espresso shadow-tactile-sm animate-pulse">
                                   <Utensils className="w-3.5 h-3.5" />
                                   <span>Sedang Diracik 👨‍🍳</span>
