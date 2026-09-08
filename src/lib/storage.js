@@ -211,11 +211,19 @@ const parseOrder = (order) => {
     }
   }
 
-  // Cek apakah notifikasi WhatsApp pesanan siap sudah dikirim
-  const isWaNotified = Boolean(
-    order.is_wa_notified ||
-    notes.includes('[WA_NOTIFIED]')
-  );
+  // Cek apakah notifikasi WhatsApp pesanan siap sudah dikirim & berapa kali dipanggil
+  let waNotificationCount = 0;
+  if (order.wa_notification_count !== undefined && order.wa_notification_count !== null) {
+    waNotificationCount = Number(order.wa_notification_count) || 0;
+  } else if (notes.includes('[WA_NOTIFIED:')) {
+    const match = notes.match(/\[WA_NOTIFIED:\s*(\d+)\]/);
+    if (match) {
+      waNotificationCount = parseInt(match[1], 10) || 0;
+    }
+  } else if (notes.includes('[WA_NOTIFIED]')) {
+    waNotificationCount = 1;
+  }
+  const isWaNotified = waNotificationCount > 0 || Boolean(order.is_wa_notified);
 
   // Catatan bersih tanpa tag kurung siku
   const displayNotes = notes
@@ -228,6 +236,7 @@ const parseOrder = (order) => {
     .replace(/\[BAYAR_PAS_AMBIL\]/g, '')
     .replace(/\[CHEF_DIANTAR\]/g, '')
     .replace(/\[CHEF_NOTE:\s*[^\]]+\]/g, '')
+    .replace(/\[WA_NOTIFIED:\s*\d+\]/g, '')
     .replace(/\[WA_NOTIFIED\]/g, '')
     .trim();
 
@@ -242,7 +251,8 @@ const parseOrder = (order) => {
     cash_timing: cashTiming,
     is_chef_delivered: isChefDelivered,
     chef_note: chefNote,
-    is_wa_notified: isWaNotified
+    is_wa_notified: isWaNotified,
+    wa_notification_count: waNotificationCount
   };
 };
 
@@ -534,14 +544,25 @@ export const markOrderWaNotified = async (orderId) => {
   const target = allOrders.find(o => o.id === orderId);
   if (!target) return;
 
-  let currentNotes = target.notes || '';
-  if (!currentNotes.includes('[WA_NOTIFIED]')) {
-    currentNotes = `${currentNotes} [WA_NOTIFIED]`.trim();
+  // Hitung jumlah panggilan berikutnya
+  let currentCount = target.wa_notification_count || 0;
+  if (!currentCount && (target.notes || '').includes('[WA_NOTIFIED')) {
+    const match = (target.notes || '').match(/\[WA_NOTIFIED:\s*(\d+)\]/);
+    currentCount = match ? parseInt(match[1], 10) : 1;
   }
+  const newCount = currentCount + 1;
+
+  let currentNotes = (target.notes || '')
+    .replace(/\[WA_NOTIFIED:\s*\d+\]/g, '')
+    .replace(/\[WA_NOTIFIED\]/g, '')
+    .trim();
+
+  currentNotes = `${currentNotes} [WA_NOTIFIED: ${newCount}]`.trim();
 
   const extraData = {
     notes: currentNotes,
-    is_wa_notified: true
+    is_wa_notified: true,
+    wa_notification_count: newCount
   };
 
   return await updateOrderStatus(orderId, target.status, extraData);

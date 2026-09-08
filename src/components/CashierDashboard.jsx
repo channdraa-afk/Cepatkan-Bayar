@@ -132,21 +132,27 @@ export default function CashierDashboard({
     await onUpdateStatus(orderId, 'cooking');
   };
 
-  // Notifikasi WhatsApp: Pesanan Siap Diambil / Sedang Diantar
+  // Notifikasi WhatsApp: Pesanan Siap Diambil / Sedang Diantar (3 Versi Eskalasi)
   const handleSendPickupWa = async (order) => {
     sound.playClick();
     setSendingWaId(order.id);
     const isDelivery = order.delivery_type === 'delivery' || 
       (order.notes && order.notes.includes('🛵 Diantar'));
+    const nextAttempt = (order.wa_notification_count || 0) + 1;
     try {
-      const result = await sendPickupNotification(order);
+      const result = await sendPickupNotification(order, nextAttempt);
       if (result.success) {
         sound.playComplete();
         await markOrderWaNotified(order.id);
         // Refresh local orders via status update broadcast
         await onUpdateStatus(order.id, order.status);
+        const attemptLabel = nextAttempt === 1 
+          ? 'Panggilan Ke-1' 
+          : nextAttempt === 2 
+          ? 'Panggilan Ke-2 (Pengingat Es/Dingin)' 
+          : 'Panggilan Ke-3 (Terakhir / Spam)';
         const actionLabel = isDelivery ? '🛵 Info pesanan sedang diantar' : '📢 Panggilan pesanan siap';
-        setToastMsg(`${actionLabel} berhasil dikirim ke ${order.customer_name} (${order.order_number})!`);
+        setToastMsg(`${actionLabel} [${attemptLabel}] berhasil dikirim ke ${order.customer_name} (${order.order_number})!`);
       } else {
         sound.playRemove();
         setToastMsg(`Gagal kirim WA: ${result.reason || 'Cek nomor pembeli'}`);
@@ -875,30 +881,84 @@ export default function CashierDashboard({
                 <div className="mt-4 pt-3 border-t-2 border-espresso">
                   {!isCompleted && !isCancelled ? (
                     <div className="space-y-2">
-                      {/* Opsi Panggilan WhatsApp: Pesanan Siap Diambil / Sedang Diantar (Opsional) */}
+                      {/* Opsi Panggilan WhatsApp: Pesanan Siap Diambil / Sedang Diantar (3 Versi Bertingkat) */}
                       {order.customer_phone && (() => {
                         const isDeliveryOrder = order.delivery_type === 'delivery' || 
                           (order.notes && order.notes.includes('🛵 Diantar'));
+                        const callCount = order.wa_notification_count || 0;
 
                         return (
                           <div>
                             {order.is_wa_notified ? (
-                              <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-500 flex items-center justify-between shadow-tactile-sm">
-                                <span className="text-[11px] font-black text-emerald-900 flex items-center gap-1.5">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                  <span>
-                                    {isDeliveryOrder ? 'Sudah Dikabari (Sedang Diantar) ✓' : 'Sudah Dipanggil via WA ✓'}
-                                  </span>
-                                </span>
+                              <div className={`p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-tactile-sm ${
+                                callCount >= 3
+                                  ? 'bg-rose-50 border-rose-400'
+                                  : callCount === 2
+                                  ? 'bg-amber-50 border-amber-400'
+                                  : 'bg-emerald-50 border-emerald-500'
+                              }`}>
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle2 className={`w-4 h-4 shrink-0 ${
+                                    callCount >= 3
+                                      ? 'text-rose-600'
+                                      : callCount === 2
+                                      ? 'text-amber-600'
+                                      : 'text-emerald-600'
+                                  }`} />
+                                  <div>
+                                    <span className={`text-[11px] font-black block ${
+                                      callCount >= 3
+                                        ? 'text-rose-950'
+                                        : callCount === 2
+                                        ? 'text-amber-950'
+                                        : 'text-emerald-900'
+                                    }`}>
+                                      {isDeliveryOrder ? 'Kabar Pengantaran:' : 'Panggilan WA:'}{' '}
+                                      <span className="underline">
+                                        {callCount === 1
+                                          ? 'Sudah Dipanggil 1x'
+                                          : callCount === 2
+                                          ? 'Sudah Dipanggil 2x'
+                                          : `Sudah Dipanggil ${callCount}x (Panggilan Terakhir)`}
+                                      </span>
+                                    </span>
+                                    <span className="text-[10px] font-bold text-espresso/60">
+                                      {callCount === 1
+                                        ? 'Panggilan berikutnya: Versi 2 (es mencair/dingin)'
+                                        : callCount === 2
+                                        ? 'Panggilan berikutnya: Versi 3 (terakhir/urgent)'
+                                        : 'Sudah 3x spam maksimal'}
+                                    </span>
+                                  </div>
+                                </div>
+
                                 <button
                                   type="button"
                                   disabled={sendingWaId === order.id}
                                   onClick={() => handleSendPickupWa(order)}
-                                  className="text-[10px] font-black text-emerald-700 hover:text-emerald-950 underline flex items-center gap-1 disabled:opacity-50"
-                                  title={isDeliveryOrder ? "Kirim ulang kabar pengantaran ke pembeli" : "Kirim ulang chat panggil jika pembeli belum datang ke meja stand"}
+                                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black flex items-center justify-center gap-1.5 border shadow-tactile-sm shrink-0 active:translate-y-0.5 transition-all disabled:opacity-50 ${
+                                    callCount === 1
+                                      ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-700'
+                                      : callCount === 2
+                                      ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-800 animate-pulse'
+                                      : 'bg-cream-100 hover:bg-cream-200 text-espresso border-espresso/40'
+                                  }`}
+                                  title={
+                                    callCount === 1
+                                      ? 'Kirim Panggilan Ke-2: Pengingat es mencair / makanan dingin'
+                                      : callCount === 2
+                                      ? 'Kirim Panggilan Ke-3: Panggilan terakhir & urgent'
+                                      : 'Kirim ulang WhatsApp'
+                                  }
                                 >
-                                  <RefreshCw className={`w-3 h-3 ${sendingWaId === order.id ? 'animate-spin' : ''}`} />
-                                  <span>{isDeliveryOrder ? 'Kabari Lagi' : 'Panggil Lagi'}</span>
+                                  <RefreshCw className={`w-3.5 h-3.5 ${sendingWaId === order.id ? 'animate-spin' : ''}`} />
+                                  <span>
+                                    {callCount === 1
+                                      ? (isDeliveryOrder ? '🛵 Kabari Ke-2' : '📢 Panggil Ke-2')
+                                      : callCount === 2
+                                      ? (isDeliveryOrder ? '🚨 Kabari Ke-3 (Terakhir)' : '🚨 Panggil Ke-3 (Terakhir)')
+                                      : '↻ Panggil Lagi'}
+                                  </span>
                                 </button>
                               </div>
                             ) : (

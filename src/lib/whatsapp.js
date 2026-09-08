@@ -82,11 +82,12 @@ export function normalizeWaNumber(phone) {
 }
 
 /**
- * Menghasilkan pesan notifikasi WhatsApp dengan 2 versi:
- * 1. Versi Diantar ke Kelas (Delivery)
- * 2. Versi Ambil di Kasir (Pickup)
+ * Menghasilkan pesan notifikasi WhatsApp dengan 3 versi eskalasi panggilan:
+ * - Panggilan 1 (Normal / Ramah & Menggiurkan)
+ * - Panggilan 2 (Pengingat Halus tapi Mendesak - Es Mencair / Makanan Dingin)
+ * - Panggilan 3 (Panggilan Terakhir / Urgent & Lucu Stand Bazar)
  */
-export function createPickupMessage(order) {
+export function createPickupMessage(order, callNumber = 1) {
   if (!order) return '';
 
   const customerName = order.customer_name || 'Kakak';
@@ -112,38 +113,109 @@ export function createPickupMessage(order) {
   const isDelivery = order.delivery_type === 'delivery' || 
     (order.notes && order.notes.includes('🛵 Diantar'));
 
-  // VERSI 1: PESANAN DIANTAR KE KELAS (DELIVERY)
+  const attempt = Number(callNumber) || 1;
+
+  // ==================== A. PESANAN DIANTAR KE KELAS (DELIVERY) ====================
   if (isDelivery) {
+    if (attempt === 1) {
+      // Panggilan 1 Delivery: Normal
+      return [
+        `Halo kak *${customerName}*${customerClass}! 👋`,
+        `Pesananmu di *${STAND_NAME}* sudah selesai dan *SEDANG DIANTAR* nih! 🛵💨`,
+        '',
+        `📋 *Rincian Pesanan #${orderNumber}:*`,
+        itemsList,
+        '',
+        `💰 *Total:* ${totalPrice} (${paymentText})`,
+        `📍 *Tujuan Antar:* ${order.customer_class || 'Kelas/Ruangan Kamu'}`,
+        '',
+        '🛵 *Tim kurir stand kami sedang meluncur ke kelasmu, mohon ditunggu di kelas yaa kak.*',
+        '',
+        'Terima kasih banyak sudah jajan di stand kami! 🙏😊'
+      ].join('\n');
+    } else if (attempt === 2) {
+      // Panggilan 2 Delivery: Kurir Sudah Dekat
+      return [
+        `Halo kak *${customerName}*${customerClass}! 🛵💨`,
+        `Ini *Panggilan Ke-2* dari *${STAND_NAME}* yaa kak 🙏`,
+        '',
+        `Tim pengantar kami sudah meluncur / berada di sekitar *${order.customer_class || 'kelasmu'}* membawa pesananmu *#${orderNumber}*:`,
+        itemsList,
+        '',
+        `💰 *Total:* ${totalPrice} (${paymentText})`,
+        '',
+        '👀 *Mohon cek depan pintu atau standby di kelas yaa kak, biar kurir kami langsung ketemu!*',
+        '',
+        'Terima kasih banyak yaa kak! Ditunggu responnya 🙏😊'
+      ].join('\n');
+    } else {
+      // Panggilan 3 Delivery: Terakhir
+      return [
+        `⚠️ *PANGGILAN TERAKHIR PENGANTARAN (KE-3)* ⚠️`,
+        `Halo kak *${customerName}*${customerClass}! 📢🚨`,
+        '',
+        `Tim pengantar *${STAND_NAME}* sedang mencari kakak di *${order.customer_class || 'kelas'}* untuk mengantar pesanan *#${orderNumber}*:`,
+        itemsList,
+        '',
+        `💰 *Total:* ${totalPrice} (${paymentText})`,
+        '',
+        '🏃💨 *Mohon segera temui kurir pengantar kami di depan kelas atau balas chat ini yaa kak!*',
+        'Biar kurir kami bisa lanjut mengantar pesanan teman-teman lainnya hehe 🙏😄',
+        '',
+        'Ditunggu banget konfirmasinya yaa kak, terima kasih banyak! 🙏❤️'
+      ].join('\n');
+    }
+  }
+
+  // ==================== B. PESANAN DIAMBIL DI KASIR STAND (PICKUP) ====================
+  if (attempt === 1) {
+    // Panggilan 1 Pickup: Ramah & Segar
     return [
       `Halo kak *${customerName}*${customerClass}! 👋`,
-      `Pesananmu di *${STAND_NAME}* sudah selesai dan *SEDANG DIANTAR* nih! 🛵💨`,
+      `Pesananmu di *${STAND_NAME}* sudah *SIAP DIAMBIL* nih! 🥤✨`,
       '',
       `📋 *Rincian Pesanan #${orderNumber}:*`,
       itemsList,
       '',
       `💰 *Total:* ${totalPrice} (${paymentText})`,
-      `📍 *Tujuan Antar:* ${order.customer_class || 'Kelas/Ruangan Kamu'}`,
       '',
-      '🛵 *Tim kurir stand kami sedang meluncur ke kelasmu, mohon ditunggu di kelas yaa kak.*',
+      '🚶 *Pesananmu sudah siap di meja Lunar Cafe, yuk langsung ke stand untuk mengambilnya yaa.*',
       '',
-      'Terima kasih banyak sudah jajan di stand kami! 🙏😊'
+      'Ditunggu kedatangannya yaa kak, terima kasih banyak! 🙏😊'
+    ].join('\n');
+  } else if (attempt === 2) {
+    // Panggilan 2 Pickup: Es Mencair / Makanan Dingin (Agak Mendesak)
+    return [
+      `Halo kak *${customerName}*${customerClass}! 👋`,
+      `Ini *Panggilan Ke-2* dari *${STAND_NAME}* yaa kak 🙏`,
+      '',
+      `Pesananmu *#${orderNumber}* sudah menunggu di meja stand dari tadi lho:`,
+      itemsList,
+      '',
+      `💰 *Total:* ${totalPrice} (${paymentText})`,
+      '',
+      '❄️ *Takutnya esnya mencair / makanannya keburu dingin nih kak!*',
+      'Yuk segera meluncur ke stand *Lunar Cafe* buat jemput pesananmu sekarang yaa! 🏃💨',
+      '',
+      'Ditunggu banget kedatangannya yaa kak! 🙏😊'
+    ].join('\n');
+  } else {
+    // Panggilan 3 Pickup: Panggilan Terakhir (Spam ke-3 / Agak Lucu Khas Bazar)
+    return [
+      `⚠️ *PANGGILAN TERAKHIR (KE-3)* ⚠️`,
+      `Halo kak *${customerName}*${customerClass}! 📢🚨`,
+      '',
+      `Pesananmu *#${orderNumber}* di *${STAND_NAME}* masih setia nungguin kamu di meja stand nih kak! 🥺`,
+      itemsList,
+      '',
+      `💰 *Total:* ${totalPrice} (${paymentText})`,
+      '',
+      '🏃💨 *Yuk buruan ke stand Lunar Cafe SEKARANG JUGA yaa kak!*',
+      'Kasir dan tim kami sudah rindu nungguin jemputanmu nih, jangan sampai makanannya kesepian di meja stand wkwk 🙏😄',
+      '',
+      'Ditunggu segera yaa kak! Terima kasih banyak! 🥤✨'
     ].join('\n');
   }
-
-  // VERSI 2: PESANAN DIAMBIL DI KASIR STAND (PICKUP)
-  return [
-    `Halo kak *${customerName}*${customerClass}! 👋`,
-    `Pesananmu di *${STAND_NAME}* sudah *SIAP DIAMBIL* nih! 🥤✨`,
-    '',
-    `📋 *Rincian Pesanan #${orderNumber}:*`,
-    itemsList,
-    '',
-    `💰 *Total:* ${totalPrice} (${paymentText})`,
-    '',
-    '🚶 *Pesananmu sudah siap di meja Lunar Cafe, yuk langsung ke stand untuk mengambilnya yaa.*',
-    '',
-    'Ditunggu kedatangannya yaa kak, terima kasih banyak! 🙏😊'
-  ].join('\n');
 }
 
 /**
@@ -218,7 +290,7 @@ export function setFonnteToken(token) {
  * - Jika ada Token Fonnte tersimpan: Kirim via HTTP API background.
  * - Jika tidak ada / fetch gagal: Buka browser wa.me secara direct (1-klik pesan terisi otomatis).
  */
-export async function sendPickupNotification(order) {
+export async function sendPickupNotification(order, callNumber) {
   const phone = order.customer_phone;
   const normalizedPhone = normalizeWaNumber(phone);
 
@@ -229,7 +301,8 @@ export async function sendPickupNotification(order) {
     };
   }
 
-  const messageText = createPickupMessage(order);
+  const attempt = callNumber || (order.wa_notification_count ? order.wa_notification_count + 1 : 1);
+  const messageText = createPickupMessage(order, attempt);
   const token = getFonnteToken();
 
   // Mode 1: Jika ada Fonnte Token, kirim via background API
