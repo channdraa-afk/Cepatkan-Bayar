@@ -3,17 +3,19 @@ import {
   CheckCircle2, Utensils, Package, QrCode, 
   AlertCircle, Sparkles, Calculator,
   MessageCircle, Ban, Trash2, Bot, RefreshCw,
-  Banknote, Clock, Flame
+  Banknote, Clock, Flame, FileText, Printer
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
 import { sendPickupNotification, sendCompletedNotification, getFonnteToken } from '../lib/whatsapp';
 import { markOrderWaNotified } from '../lib/storage';
 import WaBotModal from './WaBotModal';
+import SalesReportModal from './SalesReportModal';
 
 export default function CashierDashboard({
   orders,
   menus,
+  expenses = [],
   onUpdateStatus,
   onValidatePayment,
   onUpdateChefDelivery,
@@ -32,6 +34,7 @@ export default function CashierDashboard({
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [toastMsg, setToastMsg] = useState(null);
   const [isWaModalOpen, setIsWaModalOpen] = useState(false);
+  const [isSalesReportOpen, setIsSalesReportOpen] = useState(false);
   const [sendingWaId, setSendingWaId] = useState(null);
   const [hasFonnteToken, setHasFonnteToken] = useState(() => Boolean(getFonnteToken()));
 
@@ -234,6 +237,19 @@ export default function CashierDashboard({
           >
             <Calculator className="w-4 h-4 text-espresso" />
             <span>💰 Buku Kas & Modal</span>
+          </button>
+
+          {/* Tombol Rekap Laporan (Cetak/PDF & WhatsApp) */}
+          <button
+            onClick={() => {
+              sound.playClick();
+              setIsSalesReportOpen(true);
+            }}
+            className="px-3 py-2 text-xs flex items-center gap-1.5 font-black bg-blue-600 hover:bg-blue-500 text-white border-2 border-espresso rounded-xl shadow-tactile-sm active:translate-y-0.5 transition-all"
+            title="Rekap Seluruh Transaksi Selesai (Format Cetak PDF & WhatsApp)"
+          >
+            <FileText className="w-4 h-4 text-white" />
+            <span>📊 Rekap Laporan</span>
           </button>
 
           <button
@@ -476,6 +492,35 @@ export default function CashierDashboard({
             : '✓ Arsip seluruh transaksi pesanan yang telah selesai dilayani'}
         </div>
       </div>
+
+      {/* Banner Rekap Laporan Penjualan Selesai */}
+      {activeTab === 'completed' && completedOrders.length > 0 && (
+        <div className="p-3.5 sm:p-4 bg-blue-50 border-2 border-blue-600 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-tactile-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white border-2 border-espresso flex items-center justify-center shrink-0 shadow-tactile-sm">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-black text-sm text-blue-950">
+                Rekapitulasi Penjualan & Transaksi Selesai
+              </h4>
+              <p className="text-xs font-bold text-blue-900/80">
+                Total {completedOrders.length} transaksi selesai • Total Omzet {formatRupiah(totalOmzet)} (Tunai: {formatRupiah(totalTunai)}, QRIS: {formatRupiah(totalQris)}).
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              sound.playClick();
+              setIsSalesReportOpen(true);
+            }}
+            className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black border-2 border-espresso rounded-xl shadow-tactile-sm active:translate-y-0.5 transition-all flex items-center justify-center gap-1.5 shrink-0"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Buka Rekap & Cetak PDF</span>
+          </button>
+        </div>
+      )}
 
       {/* Daftar Pesanan */}
       {displayedOrders.length === 0 ? (
@@ -1163,6 +1208,15 @@ export default function CashierDashboard({
           })}
         </div>
       )}
+
+      {/* Modal Rekap Laporan Transaksi Selesai */}
+      <SalesReportModal
+        isOpen={isSalesReportOpen}
+        onClose={() => setIsSalesReportOpen(false)}
+        orders={orders}
+        menus={menus}
+        expenses={expenses}
+      />
 
       {/* Modal Pengaturan Bot WhatsApp */}
       <WaBotModal

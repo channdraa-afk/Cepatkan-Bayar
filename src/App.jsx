@@ -536,6 +536,7 @@ export default function App() {
           <CashierDashboard
             orders={orders}
             menus={menus}
+            expenses={expenses}
             onUpdateStatus={handleUpdateOrderStatus}
             onValidatePayment={handleValidatePayment}
             onUpdateChefDelivery={handleUpdateChefDelivery}
