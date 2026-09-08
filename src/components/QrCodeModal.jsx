@@ -289,11 +289,11 @@ export default function QrCodeModal({ isOpen, onClose }) {
           /* ================= TAB 3: QR VOTE STAND BAZAR ================= */
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-espresso text-xs font-black text-amber-950 mb-2 shadow-tactile-sm">
-              <Star className="w-3.5 h-3.5 text-amber-600 fill-amber-500" /> Vote Stand Terfavorit
+              <Star className="w-3.5 h-3.5 text-amber-600 fill-amber-500" /> Portal E-Voting SMEGA
             </div>
-            <h3 className="text-lg font-black text-espresso mb-1">QR Vote Stand Kami</h3>
+            <h3 className="text-lg font-black text-espresso mb-1">E-Voting Stand Bazar</h3>
             <p className="text-xs text-espresso/70 font-bold mb-3">
-              Pajang atau tunjukkan QR ini di meja agar pengunjung bisa vote stand kamu!
+              Voting dilakukan langsung di portal web sekolah. Scan QR ini atau klik tombol di bawah untuk langsung membuka web voting!
             </p>
 
             <div className="p-3 bg-white border-2 border-espresso rounded-2xl shadow-tactile inline-block mx-auto mb-3">
@@ -311,12 +311,12 @@ export default function QrCodeModal({ isOpen, onClose }) {
 
             {isEditingVote ? (
               <div className="space-y-2 mb-3 bg-cream-100 p-2.5 rounded-xl border border-espresso/20 text-left">
-                <label className="text-[10px] font-black text-espresso uppercase block">Link / URL Voting:</label>
+                <label className="text-[10px] font-black text-espresso uppercase block">Link / URL Portal Voting:</label>
                 <input
                   type="url"
                   value={editInputVal}
                   onChange={(e) => setEditInputVal(e.target.value)}
-                  placeholder="https://forms.gle/..."
+                  placeholder="https://evoting.smkn1pbg.sch.id/"
                   className="w-full px-2.5 py-1.5 rounded-lg border-2 border-espresso bg-cream-50 text-xs font-bold text-espresso focus:outline-none"
                 />
                 <div className="flex gap-2">
@@ -354,6 +354,17 @@ export default function QrCodeModal({ isOpen, onClose }) {
             )}
 
             <div className="flex flex-col gap-2">
+              <a
+                href={voteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-espresso border-2 border-espresso font-black text-xs flex items-center justify-center gap-1.5 shadow-tactile transition-all active:translate-y-0.5"
+              >
+                <Star className="w-4 h-4 fill-current text-espresso" />
+                <span>🗳️ Buka Portal E-Voting SMEGA</span>
+                <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+              </a>
+
               <div className="flex gap-2">
                 <button
                   onClick={handleCopyVote}
@@ -362,22 +373,14 @@ export default function QrCodeModal({ isOpen, onClose }) {
                   {copiedVote ? <Check className="w-3.5 h-3.5 text-sage-700" /> : <Copy className="w-3.5 h-3.5" />}
                   {copiedVote ? 'Tersalin!' : 'Salin Link'}
                 </button>
-                <a
-                  href={voteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-tactile-sage flex-1 py-2 text-xs flex items-center justify-center gap-1.5 font-black"
+                <button
+                  onClick={handleDownloadVoteQr}
+                  className="btn-tactile-primary flex-1 py-2 text-xs font-black flex items-center justify-center gap-1.5 shadow-tactile-sm"
+                  title="Unduh QR code ini agar pengunjung stand bisa scan langsung ke portal evoting"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" /> Buka Link
-                </a>
+                  <Download className="w-3.5 h-3.5" /> Unduh QR (PNG)
+                </button>
               </div>
-
-              <button
-                onClick={handleDownloadVoteQr}
-                className="btn-tactile-primary w-full py-2.5 text-xs font-black flex items-center justify-center gap-1.5 shadow-tactile"
-              >
-                <Download className="w-4 h-4" /> Unduh Gambar QR Vote (PNG)
-              </button>
             </div>
           </div>
         )}

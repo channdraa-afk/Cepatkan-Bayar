@@ -653,11 +653,17 @@ export const subscribeToData = (onOrderChange, onMenuChange, onExpenseChange) =>
 
 // ==================== VOTE STAND CONFIG ====================
 const LOCAL_STORAGE_VOTE_URL_KEY = 'cepatkanbayar_vote_stand_url';
-export const DEFAULT_VOTE_URL = 'https://forms.gle/cepatkanbayar-vote';
+export const DEFAULT_VOTE_URL = 'https://evoting.smkn1pbg.sch.id/';
 
 export const getVoteUrl = () => {
   try {
-    return localStorage.getItem(LOCAL_STORAGE_VOTE_URL_KEY) || DEFAULT_VOTE_URL;
+    const saved = localStorage.getItem(LOCAL_STORAGE_VOTE_URL_KEY);
+    // Jika masih berisi link placeholder google form lama, migrasi otomatis ke URL E-Voting resmi sekolah
+    if (!saved || saved.includes('forms.gle') || saved.includes('cepatkanbayar-vote')) {
+      localStorage.setItem(LOCAL_STORAGE_VOTE_URL_KEY, DEFAULT_VOTE_URL);
+      return DEFAULT_VOTE_URL;
+    }
+    return saved.trim() || DEFAULT_VOTE_URL;
   } catch {
     return DEFAULT_VOTE_URL;
   }

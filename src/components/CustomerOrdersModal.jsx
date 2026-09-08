@@ -252,9 +252,10 @@ export default function CustomerOrdersModal({
             href={getVoteUrl()}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-300 hover:bg-amber-400 text-espresso text-xs font-black border border-espresso shadow-tactile-sm transition-all"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-300 hover:bg-amber-400 text-espresso text-xs font-black border border-espresso shadow-tactile-sm transition-all"
+            title="Masuk ke portal resmi E-Voting SMEGA"
           >
-            <span>⭐ Vote Stand Kami</span>
+            <span>🗳️ Vote di evoting.smkn1pbg.sch.id</span>
           </a>
           <button
             type="button"

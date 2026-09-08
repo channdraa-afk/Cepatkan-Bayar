@@ -19,12 +19,13 @@ import {
   createMenu, updateMenu, deleteMenu, clearAllMenus,
   deleteOrder, clearAllOrders, toggleQrisValidation,
   fetchExpenses, createExpense, deleteExpense, clearAllExpenses,
-  getCustomerOrderIds, saveCustomerOrderId
+  getCustomerOrderIds, saveCustomerOrderId, getVoteUrl
 } from './lib/storage';
 import { formatRupiah } from './components/MenuCard';
 import { sound } from './lib/audio';
 import { 
-  Coffee, Sparkles, Search, ShieldCheck, Plus, ChevronRight, ClipboardList, Clock, Utensils
+  Coffee, Sparkles, Search, ShieldCheck, Plus, ChevronRight, ClipboardList, Clock, Utensils,
+  Star, ExternalLink
 } from 'lucide-react';
 
 export default function App() {
@@ -644,6 +645,33 @@ export default function App() {
               <p className="text-xs sm:text-sm text-espresso/80 font-bold max-w-md mx-auto leading-relaxed">
                 Pilih menu favoritmu, cek sisa stok *realtime*, dan ambil pesananmu saat nomor antrean dipanggil!
               </p>
+            </div>
+
+            {/* Banner Ajakan E-Voting SMEGA */}
+            <div className="p-3 sm:p-3.5 bg-gradient-to-r from-amber-100 via-amber-50 to-orange-100 border-2 border-espresso rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-tactile-sm">
+              <div className="flex items-center gap-2.5 text-left min-w-0 w-full sm:w-auto">
+                <div className="w-9 h-9 rounded-xl bg-amber-400 border-2 border-espresso flex items-center justify-center shrink-0 shadow-tactile-sm">
+                  <Star className="w-5 h-5 text-espresso fill-amber-300" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-black text-xs sm:text-sm text-espresso">Dukung Stand Kami di E-Voting SMEGA! ⭐</span>
+                  </div>
+                  <p className="text-[11px] font-bold text-espresso/70 truncate">
+                    Bantu kami jadi stand terfavorit di <span className="font-mono text-espresso font-black">evoting.smkn1pbg.sch.id</span>
+                  </p>
+                </div>
+              </div>
+
+              <a
+                href={getVoteUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto px-4 py-2 bg-amber-400 hover:bg-amber-300 text-espresso border-2 border-espresso rounded-xl text-xs font-black shadow-tactile hover:brightness-105 active:translate-y-0.5 transition-all flex items-center justify-center gap-1.5 shrink-0"
+              >
+                <span>🗳️ Masuk E-Voting</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
             </div>
 
             {/* Instant Search Bar & Filter Kategori */}
