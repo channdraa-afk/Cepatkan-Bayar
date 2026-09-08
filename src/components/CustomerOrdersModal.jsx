@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
+import { getVoteUrl } from '../lib/storage';
 
 export default function CustomerOrdersModal({
   isOpen,
@@ -246,7 +247,15 @@ export default function CustomerOrdersModal({
         </div>
 
         {/* Footer */}
-        <div className="p-3.5 border-t-2 border-espresso bg-cream-100 flex justify-end">
+        <div className="p-3 border-t-2 border-espresso bg-cream-100 flex items-center justify-between gap-2">
+          <a
+            href={getVoteUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-300 hover:bg-amber-400 text-espresso text-xs font-black border border-espresso shadow-tactile-sm transition-all"
+          >
+            <span>⭐ Vote Stand Kami</span>
+          </a>
           <button
             type="button"
             onClick={() => {

@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import { CheckCircle, Clock, Utensils, X, Bell, Download, AlertCircle, CheckCircle2, MessageCircle } from 'lucide-react';
+import { CheckCircle, Clock, Utensils, X, Bell, Download, AlertCircle, CheckCircle2, MessageCircle, Star, ExternalLink } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
 import { getCashierWaUrl } from '../lib/whatsapp';
+import { getVoteUrl } from '../lib/storage';
 
 export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
   // Kunci scroll background halaman saat modal tiket terbuka di HP
@@ -247,6 +248,27 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
                 </p>
               </div>
             )}
+          </div>
+
+          {/* Banner 1-Klik Vote Stand Bazar */}
+          <div className="p-3 bg-amber-50 border-2 border-amber-400 rounded-2xl text-center space-y-2 shadow-tactile-sm">
+            <div className="flex items-center justify-center gap-1.5 text-amber-950 font-black text-xs">
+              <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
+              <span>Suka Makanan & Pelayanan Kami?</span>
+            </div>
+            <p className="text-[11px] font-bold text-espresso/80 leading-tight">
+              Dukung stand bazar kami jadi stand terfavorit dengan 1-klik vote!
+            </p>
+            <a
+              href={getVoteUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-2 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-espresso font-black text-xs flex items-center justify-center gap-1.5 border-2 border-espresso shadow-tactile transition-all active:translate-y-0.5"
+            >
+              <Star className="w-3.5 h-3.5 fill-current" />
+              <span>⭐ Vote Stand Kami Sekarang</span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+            </a>
           </div>
 
           {/* Tombol Selesai / Pesan Baru */}

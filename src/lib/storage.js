@@ -611,3 +611,21 @@ export const subscribeToData = (onOrderChange, onMenuChange, onExpenseChange) =>
     }
   };
 };
+
+// ==================== VOTE STAND CONFIG ====================
+const LOCAL_STORAGE_VOTE_URL_KEY = 'cepatkanbayar_vote_stand_url';
+export const DEFAULT_VOTE_URL = 'https://forms.gle/cepatkanbayar-vote';
+
+export const getVoteUrl = () => {
+  try {
+    return localStorage.getItem(LOCAL_STORAGE_VOTE_URL_KEY) || DEFAULT_VOTE_URL;
+  } catch {
+    return DEFAULT_VOTE_URL;
+  }
+};
+
+export const setVoteUrl = (url) => {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_VOTE_URL_KEY, url.trim());
+  } catch {}
+};

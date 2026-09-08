@@ -1,12 +1,18 @@
 import React, { useState, useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { X, Download, Printer, Copy, Check, Banknote, Globe } from 'lucide-react';
+import { X, Download, Printer, Copy, Check, Banknote, Globe, Star, ExternalLink, Edit2 } from 'lucide-react';
 import { sound } from '../lib/audio';
+import { getVoteUrl, setVoteUrl } from '../lib/storage';
 
 export default function QrCodeModal({ isOpen, onClose }) {
-  const [activeTab, setActiveTab] = useState('web'); // 'web' | 'qris'
+  const [activeTab, setActiveTab] = useState('web'); // 'web' | 'qris' | 'vote'
   const [copied, setCopied] = useState(false);
+  const [copiedVote, setCopiedVote] = useState(false);
+  const [voteUrl, setLocalVoteUrl] = useState(() => getVoteUrl());
+  const [isEditingVote, setIsEditingVote] = useState(false);
+  const [editInputVal, setEditInputVal] = useState(voteUrl);
   const canvasRef = useRef(null);
+  const voteCanvasRef = useRef(null);
   
   if (!isOpen) return null;
 
@@ -89,6 +95,36 @@ export default function QrCodeModal({ isOpen, onClose }) {
     window.print();
   };
 
+  const handleCopyVote = () => {
+    sound.playClick();
+    navigator.clipboard.writeText(voteUrl);
+    setCopiedVote(true);
+    setTimeout(() => setCopiedVote(false), 2000);
+  };
+
+  const handleSaveVoteUrl = () => {
+    sound.playComplete();
+    const clean = editInputVal.trim();
+    if (clean) {
+      setVoteUrl(clean);
+      setLocalVoteUrl(clean);
+    }
+    setIsEditingVote(false);
+  };
+
+  const handleDownloadVoteQr = () => {
+    sound.playClick();
+    if (voteCanvasRef.current) {
+      const pngUrl = voteCanvasRef.current.toDataURL('image/png');
+      const downloadLink = document.createElement('a');
+      downloadLink.href = pngUrl;
+      downloadLink.download = 'qr-vote-stand-bazar.png';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-espresso/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in zoom-in-95 duration-200">
       <div className="relative w-full max-w-sm bg-cream border-2 border-espresso rounded-2xl shadow-tactile-lg overflow-hidden text-center p-5 sm:p-6">
@@ -104,33 +140,46 @@ export default function QrCodeModal({ isOpen, onClose }) {
           <X className="w-4 h-4" />
         </button>
 
-        {/* Tab Toggle: QR Web vs QRIS Pembayaran */}
+        {/* Tab Toggle: QR Menu vs QRIS Pembayaran vs QR Vote */}
         <div className="flex bg-cream-100 border-2 border-espresso rounded-xl p-1 gap-1 mb-4 mt-2">
           <button
             onClick={() => {
               sound.playClick();
               setActiveTab('web');
             }}
-            className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all flex items-center justify-center gap-1 ${
+            className={`flex-1 py-1.5 text-[11px] font-black rounded-lg transition-all flex items-center justify-center gap-1 ${
               activeTab === 'web'
                 ? 'bg-caramel text-cream shadow-tactile-sm'
                 : 'text-espresso/70 hover:text-espresso'
             }`}
           >
-            <Globe className="w-3.5 h-3.5" /> QR Menu
+            <Globe className="w-3.5 h-3.5" /> Menu
           </button>
           <button
             onClick={() => {
               sound.playClick();
               setActiveTab('qris');
             }}
-            className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all flex items-center justify-center gap-1 ${
+            className={`flex-1 py-1.5 text-[11px] font-black rounded-lg transition-all flex items-center justify-center gap-1 ${
               activeTab === 'qris'
                 ? 'bg-caramel text-cream shadow-tactile-sm'
                 : 'text-espresso/70 hover:text-espresso'
             }`}
           >
-            <Banknote className="w-3.5 h-3.5" /> QRIS Stand
+            <Banknote className="w-3.5 h-3.5" /> QRIS
+          </button>
+          <button
+            onClick={() => {
+              sound.playClick();
+              setActiveTab('vote');
+            }}
+            className={`flex-1 py-1.5 text-[11px] font-black rounded-lg transition-all flex items-center justify-center gap-1 ${
+              activeTab === 'vote'
+                ? 'bg-caramel text-cream shadow-tactile-sm'
+                : 'text-espresso/70 hover:text-espresso'
+            }`}
+          >
+            <Star className="w-3.5 h-3.5 text-amber-400" /> Vote
           </button>
         </div>
 
@@ -204,7 +253,7 @@ export default function QrCodeModal({ isOpen, onClose }) {
               </button>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'qris' ? (
           /* ================= TAB 2: QRIS PEMBAYARAN STAND ================= */
           <div>
             <h3 className="text-lg font-black text-espresso mb-1">QRIS Resmi Stand Bazar</h3>
@@ -233,6 +282,101 @@ export default function QrCodeModal({ isOpen, onClose }) {
                 className="btn-tactile-cream flex-1 py-2.5 text-xs flex items-center justify-center gap-1.5 font-bold"
               >
                 <Printer className="w-4 h-4" /> Cetak QRIS
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* ================= TAB 3: QR VOTE STAND BAZAR ================= */
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-espresso text-xs font-black text-amber-950 mb-2 shadow-tactile-sm">
+              <Star className="w-3.5 h-3.5 text-amber-600 fill-amber-500" /> Vote Stand Terfavorit
+            </div>
+            <h3 className="text-lg font-black text-espresso mb-1">QR Vote Stand Kami</h3>
+            <p className="text-xs text-espresso/70 font-bold mb-3">
+              Pajang atau tunjukkan QR ini di meja agar pengunjung bisa vote stand kamu!
+            </p>
+
+            <div className="p-3 bg-white border-2 border-espresso rounded-2xl shadow-tactile inline-block mx-auto mb-3">
+              <QRCodeCanvas
+                ref={voteCanvasRef}
+                value={voteUrl}
+                size={180}
+                level="H"
+                includeMargin={true}
+                marginSize={3}
+                fgColor="#4E220F"
+                bgColor="#FFFFFF"
+              />
+            </div>
+
+            {isEditingVote ? (
+              <div className="space-y-2 mb-3 bg-cream-100 p-2.5 rounded-xl border border-espresso/20 text-left">
+                <label className="text-[10px] font-black text-espresso uppercase block">Link / URL Voting:</label>
+                <input
+                  type="url"
+                  value={editInputVal}
+                  onChange={(e) => setEditInputVal(e.target.value)}
+                  placeholder="https://forms.gle/..."
+                  className="w-full px-2.5 py-1.5 rounded-lg border-2 border-espresso bg-cream-50 text-xs font-bold text-espresso focus:outline-none"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveVoteUrl}
+                    className="btn-tactile-primary px-3 py-1 text-xs font-black"
+                  >
+                    Simpan Link
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditInputVal(voteUrl);
+                      setIsEditingVote(false);
+                    }}
+                    className="btn-tactile-cream px-3 py-1 text-xs font-bold"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-3 bg-cream-100 p-2 rounded-lg border border-espresso/20 flex items-center justify-between gap-2">
+                <p className="text-[11px] font-mono font-bold text-espresso/80 truncate text-left flex-1">
+                  {voteUrl}
+                </p>
+                <button
+                  onClick={() => setIsEditingVote(true)}
+                  className="p-1 rounded bg-cream border border-espresso text-espresso/70 hover:text-espresso shrink-0 flex items-center gap-1 text-[10px] font-bold"
+                  title="Ubah URL Link Voting"
+                >
+                  <Edit2 className="w-3 h-3" />
+                  <span>Ubah</span>
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCopyVote}
+                  className="btn-tactile-cream flex-1 py-2 text-xs flex items-center justify-center gap-1.5 font-bold"
+                >
+                  {copiedVote ? <Check className="w-3.5 h-3.5 text-sage-700" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedVote ? 'Tersalin!' : 'Salin Link'}
+                </button>
+                <a
+                  href={voteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-tactile-sage flex-1 py-2 text-xs flex items-center justify-center gap-1.5 font-black"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Buka Link
+                </a>
+              </div>
+
+              <button
+                onClick={handleDownloadVoteQr}
+                className="btn-tactile-primary w-full py-2.5 text-xs font-black flex items-center justify-center gap-1.5 shadow-tactile"
+              >
+                <Download className="w-4 h-4" /> Unduh Gambar QR Vote (PNG)
               </button>
             </div>
           </div>

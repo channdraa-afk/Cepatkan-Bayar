@@ -6,6 +6,7 @@ import CartDrawer from './components/CartDrawer';
 import OrderTrackerModal from './components/OrderTrackerModal';
 import SecretPinModal from './components/SecretPinModal';
 import CashierDashboard from './components/CashierDashboard';
+import ChefDashboard from './components/ChefDashboard';
 import StockManagerModal from './components/StockManagerModal';
 import MenuManagerModal from './components/MenuManagerModal';
 import QrCodeModal from './components/QrCodeModal';
@@ -43,6 +44,13 @@ export default function App() {
       return false;
     }
   });
+  const [isChef, setIsChef] = useState(() => {
+    try {
+      return localStorage.getItem('cepatkanbayar_chef_active') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [cashierView, setCashierView] = useState(() => {
     try {
       return localStorage.getItem('cepatkanbayar_cashier_view') || 'dashboard';
@@ -63,15 +71,30 @@ export default function App() {
   const prevOrderStatusesRef = useRef({});
   const isOrderCreatingRef = useRef(false);
   const knownOrderIdsRef = useRef(new Set());
+  const prevCookingIdsRef = useRef(new Set());
 
-  // Handle State Kasir yang Awet & Anti-Logout saat Refresh Browser
-  const handleLoginCashier = () => {
-    setIsCashier(true);
-    setCashierView('dashboard');
-    try {
-      localStorage.setItem('cepatkanbayar_cashier_active', 'true');
-      localStorage.setItem('cepatkanbayar_cashier_view', 'dashboard');
-    } catch {}
+  // Handle Login Role (Kasir vs Chef) yang Awet & Anti-Logout saat Refresh Browser
+  const handleLoginSuccess = (role = 'cashier') => {
+    setIsPinModalOpen(false);
+    if (role === 'chef') {
+      setIsChef(true);
+      setIsCashier(false);
+      try {
+        localStorage.setItem('cepatkanbayar_chef_active', 'true');
+        localStorage.removeItem('cepatkanbayar_cashier_active');
+      } catch {}
+      setToastAlert('👨‍🍳 Selamat bertugas! Mode Dapur / Chef Aktif.');
+    } else {
+      setIsCashier(true);
+      setIsChef(false);
+      setCashierView('dashboard');
+      try {
+        localStorage.setItem('cepatkanbayar_cashier_active', 'true');
+        localStorage.setItem('cepatkanbayar_cashier_view', 'dashboard');
+        localStorage.removeItem('cepatkanbayar_chef_active');
+      } catch {}
+      setToastAlert('🛡️ Mode Kasir Stand Aktif.');
+    }
   };
 
   const handleLogoutCashier = () => {
@@ -81,6 +104,14 @@ export default function App() {
       localStorage.removeItem('cepatkanbayar_cashier_active');
       localStorage.removeItem('cepatkanbayar_cashier_view');
     } catch {}
+  };
+
+  const handleLogoutChef = () => {
+    setIsChef(false);
+    try {
+      localStorage.removeItem('cepatkanbayar_chef_active');
+    } catch {}
+    setToastAlert('Keluar dari Mode Dapur / Chef.');
   };
 
   const handleSetCashierView = (view) => {
@@ -119,7 +150,7 @@ export default function App() {
     const unsubscribe = subscribeToData(
       () => {
         loadData();
-        if (isCashier) {
+        if (isCashier || isChef) {
           sound.playCashRegister();
         }
       },
@@ -134,13 +165,14 @@ export default function App() {
     return () => {
       unsubscribe();
     };
-  }, [isCashier]);
+  }, [isCashier, isChef]);
 
   // Helper data pesanan milik pelanggan di perangkat ini
   const myOrders = orders.filter(o => myOrderIds.includes(o.id));
   const activeMyOrders = myOrders.filter(o => o.status === 'pending' || o.status === 'cooking');
   const latestActiveOrder = activeMyOrders[0] || null;
   const hasCookingOrder = activeMyOrders.some(o => o.status === 'cooking');
+  const cookingOrders = orders.filter(o => o.status === 'cooking');
 
   // Auto-dismiss toast alert
   useEffect(() => {
@@ -151,13 +183,13 @@ export default function App() {
   }, [toastAlert]);
 
   // Background Auto-Polling Cerdas:
-  // 1. Laptop Kasir: Polling senyap tiap 3 detik agar pesanan baru dari HP langsung muncul & bel klining berbunyi otomatis
+  // 1. Laptop Kasir & HP Chef: Polling senyap tiap 3 detik agar pesanan baru langsung muncul & bel klining berbunyi otomatis
   // 2. HP Pembeli: Polling senyap tiap 4 detik jika ada pesanan aktif agar status racik & selesai auto-update tanpa refresh
   useEffect(() => {
-    const shouldPoll = isCashier || activeMyOrders.length > 0;
+    const shouldPoll = isCashier || isChef || activeMyOrders.length > 0;
     if (!shouldPoll) return;
 
-    const pollInterval = isCashier ? 3000 : 4000;
+    const pollInterval = (isCashier || isChef) ? 3000 : 4000;
 
     const intervalId = setInterval(async () => {
       try {
@@ -173,6 +205,18 @@ export default function App() {
           knownOrderIdsRef.current = new Set(freshOrders.map(o => o.id));
         }
 
+        if (isChef) {
+          const freshCooking = freshOrders.filter(o => o.status === 'cooking');
+          const hasNewCooking = freshCooking.some(
+            o => !prevCookingIdsRef.current.has(o.id)
+          );
+          if (hasNewCooking && prevCookingIdsRef.current.size > 0) {
+            sound.playCashRegister();
+            setToastAlert('👨‍🍳 Ada pesanan baru yang siap diracik!');
+          }
+          prevCookingIdsRef.current = new Set(freshCooking.map(o => o.id));
+        }
+
         setOrders(freshOrders);
       } catch (err) {
         console.warn('Auto-polling orders warning:', err);
@@ -180,7 +224,7 @@ export default function App() {
     }, pollInterval);
 
     return () => clearInterval(intervalId);
-  }, [isCashier, activeMyOrders.length]);
+  }, [isCashier, isChef, activeMyOrders.length]);
 
   // Keep customer tracked order in sync if status changes & notify customer on "Racik" or "Selesai"
   useEffect(() => {
@@ -393,6 +437,9 @@ export default function App() {
         myOrdersCount={activeMyOrders.length}
         onOpenMyOrders={() => setIsMyOrdersOpen(true)}
         hasCookingOrder={hasCookingOrder}
+        isChef={isChef}
+        onLogoutChef={handleLogoutChef}
+        cookingOrdersCount={cookingOrders.length}
       />
 
       {/* Toast Notifikasi Realtime untuk Pelanggan */}
@@ -413,7 +460,14 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 pb-24">
-        {isCashier && cashierView === 'dashboard' ? (
+        {isChef ? (
+          /* ================= MODE CHEF (KITCHEN DISPLAY SYSTEM) ================= */
+          <ChefDashboard
+            orders={orders}
+            onUpdateStatus={handleUpdateOrderStatus}
+            onExitChef={handleLogoutChef}
+          />
+        ) : isCashier && cashierView === 'dashboard' ? (
           /* ================= MODE KASIR (DASHBOARD ANTREAN) ================= */
           <CashierDashboard
             orders={orders}
@@ -709,10 +763,7 @@ export default function App() {
       <SecretPinModal
         isOpen={isPinModalOpen}
         onClose={() => setIsPinModalOpen(false)}
-        onSuccess={() => {
-          setIsPinModalOpen(false);
-          handleLoginCashier();
-        }}
+        onSuccess={(role) => handleLoginSuccess(role)}
       />
 
       <MenuManagerModal

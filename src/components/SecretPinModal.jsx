@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, X, Delete } from 'lucide-react';
+import { Lock, X, Delete, Utensils } from 'lucide-react';
 import { sound } from '../lib/audio';
 
 export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
+  const [role, setRole] = useState('cashier'); // 'cashier' | 'chef'
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
 
   // Secure SHA-256 Hash of default cashier PIN
   const DEFAULT_PIN_HASH = '5a85661182e1459ac1c4cf36692329f0ba2c3b5ddcb90b37d5cfe7fb07ca6a27';
+  // PIN Khusus Chef Dapur
+  const CHEF_PIN = '29012010';
 
   const sha256 = async (str) => {
     try {
@@ -21,24 +24,33 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
   };
 
   const verifyPin = async (candidate) => {
-    // Cek env variable custom jika ada, atau bandingkan hash SHA-256
-    const customPin = import.meta.env.VITE_CASHIER_PIN;
-    const candidateHash = await sha256(candidate);
-
-    const isValid = (customPin && candidate === customPin) || (candidateHash === DEFAULT_PIN_HASH);
-
-    if (isValid) {
+    // 1. Cek apakah PIN Chef (29012010)
+    if (candidate === CHEF_PIN) {
       sound.playComplete();
       setPin('');
       setError(false);
-      onSuccess();
-    } else {
-      sound.playRemove();
-      setError(true);
-      setTimeout(() => {
-        setPin('');
-      }, 700);
+      onSuccess('chef');
+      return;
     }
+
+    // 2. Cek apakah PIN Kasir
+    const customPin = import.meta.env.VITE_CASHIER_PIN;
+    const candidateHash = await sha256(candidate);
+    const isCashierValid = (customPin && candidate === customPin) || (candidateHash === DEFAULT_PIN_HASH);
+
+    if (isCashierValid) {
+      sound.playComplete();
+      setPin('');
+      setError(false);
+      onSuccess('cashier');
+      return;
+    }
+
+    sound.playRemove();
+    setError(true);
+    setTimeout(() => {
+      setPin('');
+    }, 700);
   };
 
   const handleKeyPress = (num) => {
@@ -107,14 +119,52 @@ export default function SecretPinModal({ isOpen, onClose, onSuccess }) {
           <X className="w-4 h-4" />
         </button>
 
-        {/* Icon */}
-        <div className="w-12 h-12 rounded-2xl bg-caramel border-2 border-espresso flex items-center justify-center mx-auto mb-2 text-cream shadow-tactile-sm">
-          <Lock className="w-6 h-6" />
+        {/* Pilihan Opsi Login: Kasir vs Chef */}
+        <div className="flex bg-cream-100 border-2 border-espresso rounded-xl p-1 gap-1 mb-4 mt-2">
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              setRole('cashier');
+              setPin('');
+              setError(false);
+            }}
+            className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              role === 'cashier'
+                ? 'bg-caramel text-cream shadow-tactile-sm'
+                : 'text-espresso/70 hover:text-espresso'
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5" /> Kasir Stand
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              setRole('chef');
+              setPin('');
+              setError(false);
+            }}
+            className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              role === 'chef'
+                ? 'bg-caramel text-cream shadow-tactile-sm'
+                : 'text-espresso/70 hover:text-espresso'
+            }`}
+          >
+            <Utensils className="w-3.5 h-3.5" /> Dapur / Chef
+          </button>
         </div>
 
-        <h3 className="text-lg font-black text-espresso">Akses Kasir Bazar</h3>
+        {/* Icon */}
+        <div className="w-12 h-12 rounded-2xl bg-caramel border-2 border-espresso flex items-center justify-center mx-auto mb-2 text-cream shadow-tactile-sm">
+          {role === 'chef' ? <Utensils className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
+        </div>
+
+        <h3 className="text-lg font-black text-espresso">
+          {role === 'chef' ? 'Akses Dapur & Chef' : 'Akses Kasir Stand'}
+        </h3>
         <p className="text-xs text-espresso/70 mb-4 font-bold">
-          Masukkan PIN rahasia kasir
+          {role === 'chef' ? 'Masukkan PIN rahasia chef dapur' : 'Masukkan PIN rahasia kasir'}
         </p>
 
         {/* 8 PIN Indicators */}
