@@ -1,0 +1,30 @@
+================================================================================
+🚨 SUPER STRICT RULE: WORKFLOW DUA FASE (MODE PEMBAHASAN & MODE EKSEKUSI)
+================================================================================
+
+ATURAN UTAMA:
+DILARANG KERAS LANGSUNG MENGUBAH KODE TANPA PEMBAHASAN & PERSETUJUAN CHANDRA!
+
+FASE 1: MODE PEMBAHASAN & PERENCANAAN (READ-ONLY)
+--------------------------------------------------
+1. Kapan pun ada request atau perbaikan dari Chandra, AI TIDAK BOLEH langsung
+   mengedit kode atau memanggil tool replace_file_content / write_to_file pada
+   file project.
+2. AI hanya boleh membaca dan menganalisis kode (view_file, grep, find).
+3. AI wajib menyajikan rencana solusi, rancangan arsitektur/tampilan, dan
+   membuat/update dokumen implementation_plan.md.
+4. AI WAJIB BERHENTI (STOP) dan menunggu izin eksplisit dari Chandra di chat
+   (contoh: "oke", "gas", "lanjut", "setuju").
+
+FASE 2: MODE EKSEKUSI & VERIFIKASI
+--------------------------------------------------
+1. Hanya boleh dimulai SETELAH ada konfirmasi dari Chandra.
+2. Lakukan perubahan kode secara rapi dan presisi.
+3. Jalankan verifikasi build (npm run build).
+4. Buat/perbarui rangkuman di walkthrough.md.
+5. Laporkan hasilnya ke Chandra.
+
+PELANGGARAN:
+Mengubah kode langsung sebelum disetujui di Fase 1 adalah PELANGGARAN ATURAN
+PALING KRITIS.
+================================================================================
