@@ -74,7 +74,7 @@ export default function OrderTrackerModal({ order, onClose, onNewOrder }) {
           <span className="text-[11px] font-black tracking-widest uppercase bg-espresso/30 px-3 py-1 rounded-full inline-block mb-1">
             Pesanan Berhasil Terkirim!
           </span>
-          <h2 className="text-2xl font-black tracking-tight">Stand Bazar Siap Melayani</h2>
+          <h2 className="text-2xl font-black tracking-tight">Lunar Cafe Siap Melayani</h2>
         </div>
 
         {/* Content */}

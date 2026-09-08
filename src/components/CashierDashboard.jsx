@@ -478,7 +478,7 @@ export default function CashierDashboard({
                       </p>
                       {order.customer_phone && (
                         <a
-                          href={`https://wa.me/62${order.customer_phone.replace(/^0/, '').replace(/\D/g, '')}?text=${encodeURIComponent(`Halo kak ${order.customer_name}, kami dari stand bazar CepatkanBayar terkait pesanan ${order.order_number}...`)}`}
+                          href={`https://wa.me/62${order.customer_phone.replace(/^0/, '').replace(/\D/g, '')}?text=${encodeURIComponent(`Halo kak ${order.customer_name}, kami dari Lunar Cafe terkait pesanan ${order.order_number}...`)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-2 py-0.5 rounded-md border border-emerald-400 mt-1 transition-all"

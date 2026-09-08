@@ -55,7 +55,7 @@ export default function Header({
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-lg sm:text-xl font-extrabold text-espresso tracking-tight">CepatkanBayar</span>
+              <span className="text-lg sm:text-xl font-extrabold text-espresso tracking-tight">Lunar Cafe</span>
               {isCashier && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black bg-sage text-espresso border border-espresso">
                   <ShieldCheck className="w-3 h-3 text-espresso" /> Kasir Aktif

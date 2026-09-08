@@ -285,21 +285,21 @@ export default function WaBotModal({ isOpen, onClose, onTokenUpdated }) {
               /* Preview 1: Ambil di Kasir */
               <div className="p-3 bg-emerald-900 text-cream rounded-xl border-2 border-espresso text-[11px] font-sans leading-relaxed space-y-1 shadow-tactile-sm animate-in fade-in duration-150">
                 <p className="font-bold">Halo kak <strong className="text-amber-300">Chandra (XI RPL 2)</strong>! 👋</p>
-                <p>Pesananmu di <strong className="text-emerald-300">Stand Bazar CepatkanBayar</strong> sudah <strong>SIAP DIAMBIL</strong> nih! 🥤✨</p>
+                <p>Pesananmu di <strong className="text-emerald-300">Lunar Cafe</strong> sudah <strong>SIAP DIAMBIL</strong> nih! 🥤✨</p>
                 <div className="p-2 bg-emerald-950/60 rounded border border-emerald-700/50 text-[10px] my-1 font-mono">
                   📋 <strong>Rincian Pesanan #001:</strong><br />
                   • 1× Es Kopi Susu Aren<br />
                   • 2× Risol Mayo Keju<br />
                   💰 <strong>Total:</strong> Rp 25.000 (QRIS)
                 </div>
-                <p>🚶 <strong>Pesananmu sudah siap di meja stand, yuk langsung ke stand bazar untuk mengambilnya yaa.</strong></p>
+                <p>🚶 <strong>Pesananmu sudah siap di meja Lunar Cafe, yuk langsung ke stand untuk mengambilnya yaa.</strong></p>
                 <p className="text-[10px] text-emerald-200 pt-1">Ditunggu kedatangannya yaa kak, terima kasih banyak! 🙏😊</p>
               </div>
             ) : (
               /* Preview 2: Diantar ke Kelas */
               <div className="p-3 bg-amber-950 text-cream rounded-xl border-2 border-espresso text-[11px] font-sans leading-relaxed space-y-1 shadow-tactile-sm animate-in fade-in duration-150">
                 <p className="font-bold">Halo kak <strong className="text-amber-300">Chandra (XI RPL 2)</strong>! 👋</p>
-                <p>Pesananmu di <strong className="text-amber-400">Stand Bazar CepatkanBayar</strong> sudah selesai dan <strong>SEDANG DIANTAR</strong> nih! 🛵💨</p>
+                <p>Pesananmu di <strong className="text-amber-400">Lunar Cafe</strong> sudah selesai dan <strong>SEDANG DIANTAR</strong> nih! 🛵💨</p>
                 <div className="p-2 bg-black/40 rounded border border-amber-800/50 text-[10px] my-1 font-mono">
                   📋 <strong>Rincian Pesanan #002:</strong><br />
                   • 2× Es Coklat Klasik<br />

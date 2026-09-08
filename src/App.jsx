@@ -651,16 +651,16 @@ export default function App() {
               </div>
             )}
 
-            {/* Banner Stand Bazar */}
+            {/* Banner Lunar Cafe */}
             <div className="card-tactile bg-cream-100 p-4 sm:p-6 text-center relative overflow-hidden">
               <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-sage/20 pointer-events-none" />
               <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-caramel/15 pointer-events-none" />
               
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sage text-espresso border border-espresso text-xs font-black mb-2 shadow-tactile-sm">
-                <Sparkles className="w-3.5 h-3.5" /> Stand Bazar Siap Melayani
+                <Sparkles className="w-3.5 h-3.5" /> Lunar Cafe • Siap Melayani
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-espresso tracking-tight mb-1.5">
-                Pesan Mandiri & Cepatkan Bayar
+                Pesan Lezat di Lunar Cafe
               </h1>
               <p className="text-xs sm:text-sm text-espresso/80 font-bold max-w-md mx-auto leading-relaxed">
                 Pilih menu favoritmu, cek sisa stok *realtime*, dan ambil pesananmu saat nomor antrean dipanggil!
@@ -821,9 +821,9 @@ export default function App() {
 
       {/* Footer Vintage */}
       <footer className="border-t-2 border-espresso bg-cream-100 py-6 px-4 text-center text-xs font-bold text-espresso/60 space-y-2">
-        <p>© 2026 CepatkanBayar • Stand Bazar Modern by Chandra (RPL)</p>
+        <p>© 2026 Lunar Cafe • Stand Bazar Modern by Chandra (RPL)</p>
         <p className="text-[11px] text-espresso/40">
-          Made with ❤️ for Stand Bazar
+          Made with ❤️ for Lunar Cafe
         </p>
       </footer>
 

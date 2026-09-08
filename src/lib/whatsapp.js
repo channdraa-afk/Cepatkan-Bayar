@@ -1,5 +1,5 @@
 /**
- * WhatsApp Notification & Chatbot Utility for Stand Bazar CepatkanBayar
+ * WhatsApp Notification & Chatbot Utility for Lunar Cafe
  * Mendukung 2 mode:
  * 1. Mode Direct WhatsApp (1-klik wa.me, 100% gratis, tanpa backend, langsung terisi teks ramah)
  * 2. Mode Automated Background Bot (via Fonnte API Token opsional yang disimpan di browser kasir)
@@ -9,7 +9,7 @@ import { formatRupiah } from '../components/MenuCard';
 
 const FONNTE_TOKEN_STORAGE_KEY = 'cepatkanbayar_fonnte_token';
 const CASHIER_PHONE_STORAGE_KEY = 'cepatkanbayar_cashier_phone';
-const STAND_NAME = 'Stand Bazar CepatkanBayar';
+const STAND_NAME = 'Lunar Cafe';
 export const DEFAULT_CASHIER_PHONE = '085641671653';
 
 /**
@@ -52,7 +52,7 @@ export function getCashierWaUrl(order) {
   const paymentMethod = order.payment_method || 'QRIS';
 
   const text = [
-    'Halo Kasir Stand Bazar CepatkanBayar! 👋',
+    'Halo Kasir Lunar Cafe! 👋',
     'Saya ingin kirim bukti transfer QRIS:',
     `📋 *No. Pesanan:* ${orderNumber}`,
     `👤 *Nama:* ${customerName}`,
@@ -130,7 +130,7 @@ export function createPickupMessage(order) {
     '',
     `💰 *Total:* ${totalPrice} (${paymentMethod})`,
     '',
-    '🚶 *Pesananmu sudah siap di meja stand, yuk langsung ke stand bazar untuk mengambilnya yaa.*',
+    '🚶 *Pesananmu sudah siap di meja Lunar Cafe, yuk langsung ke stand untuk mengambilnya yaa.*',
     '',
     'Ditunggu kedatangannya yaa kak, terima kasih banyak! 🙏😊'
   ].join('\n');
