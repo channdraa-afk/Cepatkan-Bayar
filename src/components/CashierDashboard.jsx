@@ -953,13 +953,6 @@ export default function CashierDashboard({
                           </span>
                         )}
 
-                        {isReady && (
-                          <span className="px-2.5 py-2 text-[11px] font-black bg-emerald-100 text-emerald-950 rounded-xl border border-emerald-500 flex items-center gap-1 shadow-tactile-sm">
-                            <span>🍲</span>
-                            <span>Siap Saji</span>
-                          </span>
-                        )}
-
                         {/* Tombol Centang Selesai Dilayani (Bebas diklik langsung tanpa wajib kirim WA!) */}
                         <button
                           onClick={() => handleCompleteOrder(order)}

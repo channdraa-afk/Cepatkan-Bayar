@@ -93,6 +93,7 @@ export function createPickupMessage(order) {
   const customerClass = order.customer_class ? ` (${order.customer_class})` : '';
   const orderNumber = order.order_number || '-';
   const totalPrice = formatRupiah(order.total_price || 0);
+  const paymentMethod = order.payment_method || 'Tunai';
   let paymentText = paymentMethod;
   if (paymentMethod === 'QRIS') {
     paymentText = order.is_qris_validated ? 'QRIS - LUNAS ✓' : 'QRIS';
