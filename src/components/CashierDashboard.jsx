@@ -36,6 +36,9 @@ export default function CashierDashboard({
   const [hasFonnteToken, setHasFonnteToken] = useState(() => Boolean(getFonnteToken()));
 
   // Filter Orders
+  const pendingOrders = orders.filter(o => o.status === 'pending');
+  const cookingOrders = orders.filter(o => o.status === 'cooking');
+  const readyOrders = orders.filter(o => o.status === 'ready');
   const completedOrders = orders.filter(o => o.status === 'completed');
   const cancelledOrders = orders.filter(o => o.status === 'cancelled');
   // Antrean aktif mencakup pending (menunggu), cooking (dimasak), dan ready (selesai dimasak chef tapi belum lunas/diantar kasir)
@@ -50,13 +53,18 @@ export default function CashierDashboard({
     return new Date(a.created_at) - new Date(b.created_at);
   });
 
-  const displayedOrders = activeTab === 'active' 
-    ? sortedActiveOrders 
-    : activeTab === 'completed'
-    ? completedOrders 
-    : activeTab === 'cancelled'
-    ? cancelledOrders
-    : orders;
+  const displayedOrders = 
+    activeTab === 'pending'
+      ? pendingOrders
+      : activeTab === 'cooking'
+      ? cookingOrders
+      : activeTab === 'ready'
+      ? readyOrders
+      : activeTab === 'completed'
+      ? completedOrders 
+      : activeTab === 'cancelled'
+      ? cancelledOrders
+      : sortedActiveOrders;
 
   const totalOmzet = completedOrders.reduce((sum, o) => sum + o.total_price, 0);
   const totalTunai = completedOrders
@@ -190,12 +198,18 @@ export default function CashierDashboard({
       {/* Top Bar Kasir */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-cream-100 border-2 border-espresso rounded-2xl p-4 shadow-tactile">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-sage border border-espresso text-espresso">
               ● Mode Kasir Aktif
             </span>
-            <span className="text-xs font-bold text-espresso/60">
-              Antrean Masuk: <strong className="text-caramel">{activeOrders.length}</strong> pesanan
+            <span className="text-xs font-bold text-espresso/60 flex items-center gap-1.5 flex-wrap">
+              <span>Total Antrean: <strong className="text-caramel">{activeOrders.length}</strong></span>
+              <span>•</span>
+              <span className="text-amber-800 font-black">⏳ {pendingOrders.length} Belum Racik</span>
+              <span>•</span>
+              <span className="text-caramel font-black">🔥 {cookingOrders.length} Dimasak</span>
+              <span>•</span>
+              <span className="text-emerald-700 font-black">🍲 {readyOrders.length} Siap Saji</span>
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-espresso">Dashboard Kasir Bazar</h1>
@@ -329,85 +343,173 @@ export default function CashierDashboard({
         </div>
       )}
 
-      {/* Tabs Filter Pesanan */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-espresso pb-2 gap-2">
-        <div className="flex flex-wrap gap-2">
+      {/* Tabs Filter Pesanan: 3 Tahapan Utama Dapur/Kasir + Riwayat */}
+      <div className="flex flex-col gap-2 border-b-2 border-espresso pb-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Tab 1: Belum Diracik */}
+          <button
+            onClick={() => {
+              sound.playClick();
+              setActiveTab('pending');
+            }}
+            className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-black border-2 border-espresso transition-all flex items-center gap-1.5 ${
+              activeTab === 'pending'
+                ? 'bg-amber-400 text-espresso shadow-tactile'
+                : 'bg-cream-100 text-espresso hover:bg-cream-200'
+            }`}
+          >
+            <span>⏳ Belum Diracik</span>
+            {pendingOrders.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-950 text-[10px] font-black border border-espresso">
+                {pendingOrders.length}
+              </span>
+            )}
+          </button>
+
+          {/* Tab 2: Sedang Diracik */}
+          <button
+            onClick={() => {
+              sound.playClick();
+              setActiveTab('cooking');
+            }}
+            className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-black border-2 border-espresso transition-all flex items-center gap-1.5 ${
+              activeTab === 'cooking'
+                ? 'bg-caramel text-cream shadow-tactile'
+                : 'bg-cream-100 text-espresso hover:bg-cream-200'
+            }`}
+          >
+            <span>🔥 Sedang Diracik</span>
+            {cookingOrders.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-cream text-espresso text-[10px] font-black border border-espresso">
+                {cookingOrders.length}
+              </span>
+            )}
+          </button>
+
+          {/* Tab 3: Sudah Dimasak Chef (Highlight Menonjol) */}
+          <button
+            onClick={() => {
+              sound.playClick();
+              setActiveTab('ready');
+            }}
+            className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-black border-2 border-espresso transition-all flex items-center gap-1.5 ${
+              activeTab === 'ready'
+                ? 'bg-emerald-600 text-white shadow-tactile'
+                : readyOrders.length > 0
+                ? 'bg-emerald-100 text-emerald-950 border-emerald-600 hover:bg-emerald-200 animate-pulse'
+                : 'bg-cream-100 text-espresso hover:bg-cream-200'
+            }`}
+          >
+            <span>🍲 Sudah Dimasak Chef</span>
+            {readyOrders.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-black border border-espresso animate-bounce">
+                {readyOrders.length}
+              </span>
+            )}
+          </button>
+
+          {/* Tab 4: Semua Antrean */}
           <button
             onClick={() => {
               sound.playClick();
               setActiveTab('active');
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-black border-2 border-espresso transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-2 rounded-xl text-xs font-black border-2 border-espresso transition-all flex items-center gap-1.5 ${
               activeTab === 'active'
-                ? 'bg-caramel text-cream shadow-tactile'
-                : 'bg-cream-100 text-espresso hover:bg-cream-200'
+                ? 'bg-espresso text-cream shadow-tactile'
+                : 'bg-cream-100 text-espresso/70 hover:bg-cream-200'
             }`}
           >
-            <span>Perlu Dilayani</span>
-            {activeOrders.length > 0 && (
-              <span className="w-5 h-5 rounded-full bg-cream text-espresso text-[11px] font-black flex items-center justify-center border border-espresso">
-                {activeOrders.length}
-              </span>
-            )}
+            <span>📋 Semua Antrean ({activeOrders.length})</span>
           </button>
 
+          <span className="hidden sm:inline-block w-px h-6 bg-espresso/20 mx-1" />
+
+          {/* Tab 5: Riwayat Selesai */}
           <button
             onClick={() => {
               sound.playClick();
               setActiveTab('completed');
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-black border-2 border-espresso transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-2 rounded-xl text-xs font-black border-2 border-espresso transition-all flex items-center gap-1.5 ${
               activeTab === 'completed'
                 ? 'bg-sage text-espresso shadow-tactile'
-                : 'bg-cream-100 text-espresso hover:bg-cream-200'
+                : 'bg-cream-100 text-espresso/70 hover:bg-cream-200'
             }`}
           >
-            <span>Riwayat Selesai</span>
-            <span className="text-[11px] font-bold text-espresso/70">
-              ({completedOrders.length})
-            </span>
+            <span>✓ Selesai ({completedOrders.length})</span>
           </button>
 
+          {/* Tab 6: Dibatalkan */}
           <button
             onClick={() => {
               sound.playClick();
               setActiveTab('cancelled');
             }}
-            className={`px-3 py-2 rounded-xl text-xs font-black border-2 border-espresso transition-all flex items-center gap-1.5 ${
+            className={`px-2.5 py-2 rounded-xl text-xs font-black border-2 border-espresso transition-all flex items-center gap-1.5 ${
               activeTab === 'cancelled'
                 ? 'bg-rose-700 text-cream shadow-tactile'
-                : 'bg-cream-100 text-espresso hover:bg-cream-200'
+                : 'bg-cream-100 text-espresso/70 hover:bg-cream-200'
             }`}
           >
-            <span>Dibatalkan</span>
-            {cancelledOrders.length > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-rose-200 text-rose-900 text-[10px] font-black">
-                {cancelledOrders.length}
-              </span>
-            )}
+            <span>🚫 Batal ({cancelledOrders.length})</span>
           </button>
         </div>
 
-        <div className="text-xs font-bold text-espresso/60 hidden sm:block">
-          {activeTab === 'active' ? '⚡ Pesanan aktif otomatis tersembunyi setelah dicentang selesai' : activeTab === 'cancelled' ? 'Daftar pesanan batal & stok telah dikembalikan' : 'Arsip seluruh pesanan selesai'}
+        <div className="text-xs font-bold text-espresso/60">
+          {activeTab === 'pending'
+            ? '⏳ Pesanan baru masuk yang menunggu divalidasi kasir dan dikirim ke dapur chef'
+            : activeTab === 'cooking'
+            ? '🔥 Pesanan yang sedang dimasak dan diracik di dapur oleh chef'
+            : activeTab === 'ready'
+            ? '🍲 Pesanan yang SUDAH selesai dimasak chef! Siap diserahkan/diantar dan diselesaikan'
+            : activeTab === 'active'
+            ? '📋 Menampilkan seluruh antrean aktif (siap saji, baru, & diracik)'
+            : activeTab === 'cancelled'
+            ? '🚫 Daftar pesanan yang ditolak/dibatalkan & stok telah dikembalikan'
+            : '✓ Arsip seluruh transaksi pesanan yang telah selesai dilayani'}
         </div>
       </div>
-
-
 
       {/* Daftar Pesanan */}
       {displayedOrders.length === 0 ? (
         <div className="text-center py-16 px-4 card-tactile bg-cream-50">
           <div className="w-16 h-16 rounded-2xl bg-cream-200 border-2 border-espresso flex items-center justify-center mx-auto mb-3 shadow-tactile-sm">
-            <CheckCircle2 className="w-8 h-8 text-sage-700" />
+            {activeTab === 'ready' ? (
+              <Utensils className="w-8 h-8 text-emerald-700" />
+            ) : activeTab === 'cooking' ? (
+              <Flame className="w-8 h-8 text-caramel" />
+            ) : activeTab === 'pending' ? (
+              <Clock className="w-8 h-8 text-amber-800" />
+            ) : (
+              <CheckCircle2 className="w-8 h-8 text-sage-700" />
+            )}
           </div>
           <h3 className="text-lg font-black text-espresso mb-1">
-            {activeTab === 'active' ? 'Semua Pesanan Sudah Dilayani!' : 'Belum Ada Riwayat Pesanan'}
+            {activeTab === 'pending'
+              ? 'Tidak Ada Pesanan Belum Diracik'
+              : activeTab === 'cooking'
+              ? 'Dapur Sedang Lengang'
+              : activeTab === 'ready'
+              ? 'Belum Ada Masakan Jadi dari Chef'
+              : activeTab === 'completed'
+              ? 'Belum Ada Riwayat Pesanan Selesai'
+              : activeTab === 'cancelled'
+              ? 'Tidak Ada Pesanan Dibatalkan'
+              : 'Semua Pesanan Sudah Dilayani!'}
           </h3>
           <p className="text-xs text-espresso/70 font-bold max-w-sm mx-auto">
-            {activeTab === 'active'
-              ? 'Santai sejenak sambil menunggu pesanan baru masuk dari pembeli bazar.'
-              : 'Pesanan yang telah kamu centang selesai akan tersimpan rapi di tab ini.'}
+            {activeTab === 'pending'
+              ? 'Semua pesanan baru sudah divalidasi kasir dan dikirim ke dapur.'
+              : activeTab === 'cooking'
+              ? 'Tidak ada pesanan yang sedang dimasak chef saat ini.'
+              : activeTab === 'ready'
+              ? 'Begitu chef menekan selesai di dapur, pesanan matang akan langsung muncul di sini!'
+              : activeTab === 'completed'
+              ? 'Pesanan yang telah kamu centang selesai akan tersimpan rapi di tab ini.'
+              : activeTab === 'cancelled'
+              ? 'Pesanan yang ditolak fiktif akan tercatat di tab ini.'
+              : 'Santai sejenak sambil menunggu pesanan baru masuk dari pembeli bazar.'}
           </p>
         </div>
       ) : (
