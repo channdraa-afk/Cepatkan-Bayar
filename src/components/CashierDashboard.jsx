@@ -597,11 +597,11 @@ export default function CashierDashboard({
                           </span>
                         )}
 
-                        {/* Status Laporan Pengantaran dari Chef (HANYA jika chef sudah menandai sudah diantar) */}
+                        {/* Status Laporan Pengantaran (HANYA jika sudah menandai sudah diantar) */}
                         {order.is_chef_delivered && (
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-purple-600 text-white border border-espresso shadow-tactile-sm flex items-center gap-1 animate-pulse">
                             <span>🛵</span>
-                            <span>Sudah Diantar Chef</span>
+                            <span>Sudah Diantar Team Pengantar</span>
                           </span>
                         )}
                       </div>
@@ -657,7 +657,7 @@ export default function CashierDashboard({
                           <span className={order.payment_method === 'Tunai' && !order.is_cash_paid ? 'text-amber-950' : order.is_chef_delivered ? 'text-purple-950' : 'text-emerald-950'}>
                             {order.is_chef_delivered ? (
                               <>
-                                <strong>SUDAH DIANTAR OLEH CHEF!</strong>
+                                <strong>SUDAH DIANTAR OLEH TEAM PENGANTAR!</strong>
                                 {order.chef_note ? ` ("${order.chef_note}")` : ''}
                               </>
                             ) : (
@@ -690,14 +690,14 @@ export default function CashierDashboard({
                     </div>
                   )}
 
-                  {/* Laporan Catatan Chef (HANYA tampil jika Chef mengantar atau ada catatan khusus dari Chef) */}
+                  {/* Laporan Catatan Pengantaran (HANYA tampil jika sudah diantar atau ada catatan khusus) */}
                   {(order.is_chef_delivered || order.chef_note) && (
                     <div className="my-2 p-2.5 rounded-xl border border-purple-300 bg-purple-50/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
                       <div className="flex items-center gap-2">
                         <span className="text-base">{order.is_chef_delivered ? '🛵' : '📝'}</span>
                         <div>
                           <span className="font-black text-purple-950">
-                            {order.is_chef_delivered ? 'Laporan Chef: Sudah Diantar' : 'Catatan dari Chef'}
+                            {order.is_chef_delivered ? 'Laporan: Sudah Diantar Team Pengantar' : 'Catatan Pengantaran'}
                           </span>
                           {order.chef_note && (
                             <p className="text-[11px] font-bold text-purple-800">
@@ -720,7 +720,7 @@ export default function CashierDashboard({
                           }}
                           className="text-[10px] font-black text-purple-900 hover:underline shrink-0 bg-white px-2 py-1 rounded-md border border-purple-300 shadow-tactile-sm"
                         >
-                          {order.is_chef_delivered ? 'Batal Tandai Antar' : 'Tandai Sudah Diantar'}
+                          {order.is_chef_delivered ? 'Batal Tandai Antar' : 'Tandai Sudah Diantar Team'}
                         </button>
                       )}
                     </div>

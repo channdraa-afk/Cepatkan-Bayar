@@ -54,7 +54,7 @@ export default function ChefDashboard({
         await onUpdateChefDelivery(orderId, isDelivered, note);
       }
       setToastMsg(isDelivered 
-        ? '🛵 Laporan dikirim ke kasir: Pesanan ditandai SUDAH DIANTAR oleh Chef!' 
+        ? '🛵 Laporan dikirim ke kasir: Pesanan ditandai SUDAH DIANTAR oleh Team Pengantar!' 
         : '🏠 Laporan dikirim ke kasir: Pesanan ditandai ADA DI MEJA STAND (Belum Diantar).');
     } catch {
       setToastMsg('Gagal mengirim update status.');
@@ -72,14 +72,14 @@ export default function ChefDashboard({
         await onUpdateChefDelivery(
           order.id, 
           isDeliveredDirectly, 
-          order.chef_note || (isDeliveredDirectly ? 'Sudah diantar langsung oleh Chef' : '')
+          order.chef_note || (isDeliveredDirectly ? 'Sudah diantar oleh Team Pengantar' : '')
         );
       }
       if (onUpdateStatus) {
         await onUpdateStatus(order.id, 'ready');
       }
       setToastMsg(isDeliveredDirectly
-        ? `🛵 Pesanan #${order.order_number} selesai & dilaporkan SUDAH DIANTAR ke kasir!`
+        ? `🛵 Pesanan #${order.order_number} selesai & dilaporkan SUDAH DIANTAR oleh Team Pengantar!`
         : `✅ Pesanan #${order.order_number} selesai dimasak & ada di MEJA STAND!`);
     } catch {
       setToastMsg('Gagal mengupdate status pesanan.');
@@ -375,7 +375,7 @@ export default function ChefDashboard({
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleUpdateDelivery(order.id, true, order.chef_note || 'Sudah diantar langsung oleh Chef')}
+                          onClick={() => handleUpdateDelivery(order.id, true, order.chef_note || 'Sudah diantar oleh Team Pengantar')}
                           className={`py-2 px-2.5 rounded-xl text-xs font-black border-2 transition-all flex items-center justify-center gap-1.5 ${
                             order.is_chef_delivered
                               ? 'bg-purple-600 text-white border-espresso shadow-tactile-sm'
@@ -406,7 +406,7 @@ export default function ChefDashboard({
                     </div>
                   </div>
 
-                  {/* Tombol Aksi Utama Chef (2 Opsi: Taruh di Stand vs Langsung Diantar) */}
+                  {/* Tombol Aksi Utama Chef (2 Opsi: Taruh di Stand vs Diantar Team) */}
                   <div className="pt-3 border-t-2 border-espresso mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
                       type="button"
@@ -428,14 +428,14 @@ export default function ChefDashboard({
                       disabled={completingId === order.id}
                       onClick={() => handleChefComplete(order, true)}
                       className="py-3 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 bg-purple-700 hover:bg-purple-800 text-white border-2 border-espresso shadow-tactile hover:brightness-105 active:translate-y-0.5 transition-all disabled:opacity-50"
-                      title="Selesai masak dan pesanan sudah diantar langsung ke pembeli"
+                      title="Selesai masak dan pesanan sudah diantar oleh team pengantar"
                     >
                       {completingId === order.id ? (
                         <RefreshCw className="w-4 h-4 animate-spin" />
                       ) : (
                         <span>🛵</span>
                       )}
-                      <span>🛵 Selesai & SUDAH Diantar ✓</span>
+                      <span>🛵 Selesai & Diantar Team Pengantar ✓</span>
                     </button>
                   </div>
 
@@ -480,7 +480,7 @@ export default function ChefDashboard({
                     </p>
                     {order.chef_note && (
                       <p className="text-[11px] font-extrabold text-sky-800 mt-1">
-                        📝 Catatan Chef: "{order.chef_note}"
+                        📝 Catatan Pengantar: "{order.chef_note}"
                       </p>
                     )}
                   </div>
