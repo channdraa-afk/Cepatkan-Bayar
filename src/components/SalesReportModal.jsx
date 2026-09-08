@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Printer, Share2, Copy, Check, FileText, 
   TrendingUp, Wallet, Banknote, QrCode, Award, 
-  Search, Calendar, Clock, User, Coffee, CheckCircle2
+  Search, Calendar, Clock, User, Coffee, CheckCircle2, Download
 } from 'lucide-react';
 import { formatRupiah } from './MenuCard';
 import { sound } from '../lib/audio';
@@ -172,6 +172,40 @@ export default function SalesReportModal({
     window.print();
   };
 
+  // Unduh Cadangan Lengkap Format JSON (Offline Backup sebelum Supabase dimatikan)
+  const handleExportJson = () => {
+    sound.playAdd();
+    const backupData = {
+      app: 'Lunar Cafe',
+      event: 'Bazar Stand Lunar Cafe',
+      exported_at: new Date().toISOString(),
+      summary: {
+        total_omzet: totalOmzet,
+        total_tunai: totalTunai,
+        total_qris: totalQris,
+        total_expenses: totalExpenses,
+        net_profit: netProfit,
+        total_completed_orders: completedOrders.length,
+        total_portions: totalPortions
+      },
+      top_menus: topMenus,
+      completed_orders: sortedCompletedOrders,
+      all_orders: orders,
+      expenses: expenses,
+      menus: menus
+    };
+    const jsonStr = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Lunar_Cafe_Arsip_Penjualan_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-espresso/70 backdrop-blur-sm overflow-y-auto modal-overlay-report">
       
@@ -233,6 +267,15 @@ export default function SalesReportModal({
             >
               <Share2 className="w-4 h-4" />
               <span>Buka WA</span>
+            </button>
+
+            <button
+              onClick={handleExportJson}
+              className="btn-tactile-sage px-3 py-2 text-xs font-black flex items-center gap-1.5"
+              title="Unduh seluruh data penjualan, menu, dan pengeluaran ke file JSON sebelum Supabase dimatikan"
+            >
+              <Download className="w-4 h-4 text-espresso" />
+              <span>Unduh Data JSON</span>
             </button>
 
             <button

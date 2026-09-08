@@ -56,6 +56,9 @@ export const fetchMenus = async () => {
     try {
       const { data, error } = await supabase.from('menus').select('*').order('created_at', { ascending: true });
       if (!error && data) {
+        try {
+          localStorage.setItem(LOCAL_STORAGE_MENUS_KEY, JSON.stringify(data));
+        } catch {}
         return data;
       }
     } catch (err) {
@@ -279,6 +282,9 @@ export const fetchOrders = async () => {
         .order('created_at', { ascending: false });
       
       if (!error && data) {
+        try {
+          localStorage.setItem(LOCAL_STORAGE_ORDERS_KEY, JSON.stringify(data));
+        } catch {}
         return data.map(parseOrder);
       }
     } catch (err) {
@@ -627,6 +633,9 @@ export const fetchExpenses = async () => {
         .select('*')
         .order('created_at', { ascending: false });
       if (!error && data) {
+        try {
+          localStorage.setItem(LOCAL_STORAGE_EXPENSES_KEY, JSON.stringify(data));
+        } catch {}
         return data;
       }
     } catch {
